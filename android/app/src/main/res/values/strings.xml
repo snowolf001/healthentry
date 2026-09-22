@@ -4,7 +4,7 @@
     <string name="widget_water">Water</string>
     <string name="widget_coffee">Coffee</string>
     <string name="widget_weight">Weight</string>
-    <string name="widget_water_detail">+8 oz</string>
+    <string name="widget_water_detail">8 oz</string>
     <string name="widget_coffee_detail">95 mg</string>
     <string name="widget_weight_detail">Enter</string>
     <string name="widget_water_accessibility">Add 8 ounces of water with HealthEntry; permission may be requested</string>

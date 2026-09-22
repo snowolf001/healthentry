@@ -65,12 +65,25 @@ test.each(['water', 'coffee', 'weight'])(
     expect(layout).toContain(
       `android:contentDescription="@string/widget_${action}_accessibility"`,
     );
-    expect(layout.match(/<TextView/g)).toHaveLength(2);
-    expect(layout.match(/android:maxLines="1"/g)).toHaveLength(2);
-    expect(layout.match(/android:ellipsize="end"/g)).toHaveLength(2);
+    expect(layout.match(/<ImageView/g)).toHaveLength(1);
+    expect(layout.match(/<TextView/g)).toHaveLength(1);
+    expect(layout.match(/android:maxLines="1"/g)).toHaveLength(1);
+    expect(layout).not.toContain('android:ellipsize');
+    expect(layout).toContain(`android:src="@drawable/widget_${action}_icon"`);
+    expect(layout).not.toContain(`android:text="@string/widget_${action}"`);
+    expect(res(`drawable/widget_${action}_icon.xml`)).toContain('<vector');
+    expect(res(`drawable/widget_${action}_icon.xml`)).toContain(
+      `android:fillColor="@color/widget_${action}_accent"`,
+    );
+    expect(res(`drawable/widget_${action}_icon.xml`)).toContain(
+      'android:fillType="evenOdd"',
+    );
+    expect(layout).toContain('android:layout_width="28dp"');
+    expect(layout).toContain('android:layout_height="28dp"');
+    expect(layout).toContain('android:textColor="@color/widget_text_secondary"');
     expect(layout).not.toMatch(/<Button|<View |ConstraintLayout/);
-    expect(layout).toContain('android:textSize="13sp"');
-    expect(layout).toContain('android:textSize="12sp"');
+    expect(layout).toContain('android:textSize="11sp"');
+    expect(layout).toContain('android:autoSizeTextType="uniform"');
     expect(layout.match(/android:background=/g)).toHaveLength(1);
   },
 );
@@ -88,6 +101,7 @@ test('only three widget providers; old multi-action widget and Blood Pressure wi
     'Intent(context, WidgetEntryActivity::class.java)',
   );
   expect(provider).toContain('PendingIntent.FLAG_IMMUTABLE');
+  expect(provider).toContain('this@EntryWidgetProvider.action');
   expect(provider).toContain(
     'setOnClickPendingIntent(R.id.widget_action, pending)',
   );
@@ -137,6 +151,9 @@ test('all widget colors have native day/night resources', () => {
     'layout/coffee_widget.xml',
     'layout/weight_widget.xml',
     'drawable/widget_background.xml',
+    'drawable/widget_water_icon.xml',
+    'drawable/widget_coffee_icon.xml',
+    'drawable/widget_weight_icon.xml',
   ]
     .map(res)
     .join('\n');

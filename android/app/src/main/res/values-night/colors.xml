@@ -5,4 +5,7 @@
     <color name="widget_text_secondary">#B7C8BE</color>
     <color name="widget_border">#3A5045</color>
     <color name="widget_ripple">#6672C6A2</color>
+    <color name="widget_water_accent">#64B5F6</color>
+    <color name="widget_coffee_accent">#FFB74D</color>
+    <color name="widget_weight_accent">#70D69A</color>
 </resources>
