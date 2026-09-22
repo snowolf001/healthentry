@@ -13,7 +13,8 @@ import com.cleanutilityapps.healthentry.R
 abstract class EntryWidgetProvider(private val layout: Int, private val action: String) : AppWidgetProvider() {
     override fun onUpdate(context: Context, manager: AppWidgetManager, ids: IntArray) {
         val intent = Intent(context, WidgetEntryActivity::class.java).apply {
-            data = Uri.parse("healthentry-widget://$action")
+            // Qualify the provider preset: this Intent's action is null inside apply.
+            data = Uri.parse("healthentry-widget://${this@EntryWidgetProvider.action}")
             flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_SINGLE_TOP
         }
         val pending = PendingIntent.getActivity(context, 0, intent,

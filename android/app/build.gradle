@@ -78,6 +78,9 @@ android {
     compileSdk rootProject.ext.compileSdkVersion
 
     namespace "com.cleanutilityapps.healthentry"
+    testOptions {
+        unitTests.includeAndroidResources = true
+    }
     defaultConfig {
         applicationId "com.cleanutilityapps.healthentry"
         minSdkVersion rootProject.ext.minSdkVersion
@@ -109,6 +112,7 @@ android {
 
 dependencies {
     testImplementation("junit:junit:4.13.2")
+    testImplementation("org.robolectric:robolectric:4.16.1")
     // Same Health Connect SDK as react-native-health-connect; Activity-owned permission launchers.
     implementation("androidx.health.connect:connect-client:1.1.0")
     // The version of react-native is set by the React Native Gradle Plugin
