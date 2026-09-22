@@ -1,0 +1,287 @@
+import { useEffect, useMemo, useState } from 'react';
+import {
+  AppState,
+  Pressable,
+  ScrollView,
+  StyleSheet,
+  Text,
+  View,
+} from 'react-native';
+import packageInfo from '../../package.json';
+import { systemHealth } from '../systemHealth';
+import type { Availability, WeightUnit } from '../systemHealth/types';
+import { ActionButton } from '../ui/ActionButton';
+import type { Theme } from '../ui/theme';
+
+type Props = {
+  unit: WeightUnit;
+  ready: boolean;
+  onUnit: (unit: WeightUnit) => void;
+  onBack: () => void;
+  onPrivacy: () => void;
+  theme: Theme;
+};
+
+export function SettingsScreen({
+  unit,
+  ready,
+  onUnit,
+  onBack,
+  onPrivacy,
+  theme,
+}: Props) {
+  const styles = useMemo(() => createStyles(theme), [theme]);
+  const [availability, setAvailability] = useState<Availability | null>(null);
+  const [error, setError] = useState('');
+  const [opening, setOpening] = useState(false);
+  useEffect(() => {
+    let active = true;
+    let revision = 0;
+    async function refresh() {
+      const current = ++revision;
+      try {
+        const status = await systemHealth.getAvailability();
+        if (active && current === revision) {
+          setAvailability(status);
+          setError('');
+        }
+      } catch {
+        if (active && current === revision) {
+          setAvailability(null);
+          setError(
+            'Could not check availability. Reopen Settings to try again.',
+          );
+        }
+      }
+    }
+    refresh();
+    const listener = AppState.addEventListener('change', state => {
+      if (state === 'active') {
+        refresh();
+      }
+    });
+    return () => {
+      active = false;
+      listener.remove();
+    };
+  }, []);
+  async function openSettings() {
+    setOpening(true);
+    setError('');
+    try {
+      await systemHealth.openSettings();
+    } catch (reason) {
+      setError(
+        reason instanceof Error
+          ? reason.message
+          : 'Could not open Health Connect.',
+      );
+    } finally {
+      setOpening(false);
+    }
+  }
+  return (
+    <ScrollView contentContainerStyle={styles.content}>
+      <View style={styles.header}>
+        <ActionButton
+          theme={theme}
+          title="‹"
+          compact
+          onPress={onBack}
+          accessibilityLabel="Back to Home"
+        />
+        <Text accessibilityRole="header" style={styles.title}>
+          Settings
+        </Text>
+      </View>
+      <Text style={styles.sectionLabel}>UNITS</Text>
+      <View style={styles.settingsRow}>
+        <Text style={styles.rowTitle}>Weight</Text>
+        <View style={styles.segment}>
+          {(['lb', 'kg'] as const).map(value => (
+            <ActionButton
+              key={value}
+              theme={theme}
+              title={value}
+              compact
+              selected={unit === value}
+              disabled={!ready}
+              onPress={() => onUnit(value)}
+              accessibilityLabel={`Use ${
+                value === 'lb' ? 'pounds' : 'kilograms'
+              }`}
+            />
+          ))}
+        </View>
+      </View>
+      <Text style={styles.sectionLabel}>HEALTH CONNECT</Text>
+      <View style={styles.settingsRow}>
+        <Text style={styles.rowTitle}>Health Connect</Text>
+        <Text accessibilityLiveRegion="polite" style={styles.statusText}>
+          {availability?.status === 'available'
+            ? 'Available'
+            : availability
+            ? availability.message
+            : error
+            ? 'Status unavailable'
+            : 'Checking…'}
+        </Text>
+      </View>
+      <SettingsLink
+        theme={theme}
+        label={opening ? 'Opening…' : 'Manage access'}
+        accessibilityLabel="Manage Health Connect access"
+        disabled={opening || availability?.status !== 'available'}
+        onPress={openSettings}
+      />
+      {!!error && (
+        <Text accessibilityLiveRegion="polite" style={styles.error}>
+          {error}
+        </Text>
+      )}
+      <Text style={styles.sectionLabel}>ABOUT</Text>
+      <Text style={styles.appName}>HealthEntry</Text>
+      <Text style={styles.body}>
+        Quickly add water, caffeine, weight, and blood pressure to your system
+        health data.
+      </Text>
+      <SettingsLink theme={theme} label="Privacy Policy" onPress={onPrivacy} />
+      <Text style={styles.version}>Version {packageInfo.version}</Text>
+    </ScrollView>
+  );
+}
+
+function SettingsLink({
+  theme,
+  label,
+  onPress,
+  disabled = false,
+  accessibilityLabel,
+}: {
+  theme: Theme;
+  label: string;
+  onPress: () => unknown;
+  disabled?: boolean;
+  accessibilityLabel?: string;
+}) {
+  const styles = useMemo(() => createStyles(theme), [theme]);
+  return (
+    <Pressable
+      accessibilityRole="button"
+      accessibilityLabel={accessibilityLabel ?? label}
+      accessibilityState={{ disabled }}
+      disabled={disabled}
+      onPress={onPress}
+      style={({ pressed }) => [
+        styles.linkRow,
+        pressed && styles.pressed,
+        disabled && styles.disabled,
+      ]}
+    >
+      <Text style={styles.rowTitle}>{label}</Text>
+      <Text accessibilityElementsHidden style={styles.chevron}>
+        ›
+      </Text>
+    </Pressable>
+  );
+}
+
+export function PrivacyScreen({
+  onBack,
+  theme,
+}: {
+  onBack: () => void;
+  theme: Theme;
+}) {
+  const styles = useMemo(() => createStyles(theme), [theme]);
+  return (
+    <ScrollView contentContainerStyle={styles.content}>
+      <View style={styles.header}>
+        <ActionButton
+          theme={theme}
+          title="‹"
+          compact
+          onPress={onBack}
+          accessibilityLabel="Back to Settings"
+        />
+        <Text accessibilityRole="header" style={styles.title}>
+          Privacy Policy
+        </Text>
+      </View>
+      <Text style={styles.body}>
+        HealthEntry writes water, caffeine, weight, and blood pressure to your
+        system health data. It does not read or keep a health history.
+      </Text>
+      <Text style={styles.body}>
+        Only your preferred weight unit and last successfully entered weight are
+        saved locally to make the next entry faster. No accounts, analytics, or
+        server uploads.
+      </Text>
+      <Text style={styles.body}>
+        Development builds log write diagnostics to developer tools.
+      </Text>
+      <Text style={styles.body}>
+        The production privacy policy URL is not configured yet. This screen is
+        the route boundary for that future link.
+      </Text>
+    </ScrollView>
+  );
+}
+
+const createStyles = (theme: Theme) =>
+  StyleSheet.create({
+    content: {
+      padding: 20,
+      paddingBottom: 32,
+      gap: 16,
+      backgroundColor: theme.background,
+      flexGrow: 1,
+    },
+    header: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: 12,
+      marginBottom: 4,
+    },
+    title: { fontSize: 28, fontWeight: '700', color: theme.textPrimary },
+    sectionLabel: {
+      fontSize: 13,
+      fontWeight: '700',
+      letterSpacing: 1.2,
+      color: theme.textSecondary,
+      marginTop: 8,
+    },
+    settingsRow: {
+      minHeight: 56,
+      flexDirection: 'row',
+      alignItems: 'center',
+      justifyContent: 'space-between',
+      gap: 12,
+      paddingVertical: 6,
+      borderBottomWidth: 1,
+      borderBottomColor: theme.border,
+    },
+    segment: { flexDirection: 'row', gap: 6 },
+    rowTitle: { fontSize: 17, color: theme.textPrimary },
+    statusText: {
+      fontSize: 15,
+      color: theme.textSecondary,
+      flexShrink: 1,
+      textAlign: 'right',
+    },
+    linkRow: {
+      minHeight: 54,
+      flexDirection: 'row',
+      alignItems: 'center',
+      justifyContent: 'space-between',
+      borderBottomWidth: 1,
+      borderBottomColor: theme.border,
+    },
+    chevron: { fontSize: 28, color: theme.textSecondary },
+    pressed: { opacity: 0.7 },
+    disabled: { opacity: 0.45 },
+    appName: { fontSize: 20, fontWeight: '600', color: theme.textPrimary },
+    body: { fontSize: 16, lineHeight: 23, color: theme.textSecondary },
+    version: { fontSize: 14, color: theme.textSecondary },
+    error: { fontSize: 15, color: theme.error },
+  });

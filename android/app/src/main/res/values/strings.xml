@@ -1,3 +1,16 @@
 <resources>
-    <string name="app_name">QuickHealthInput</string>
+    <string name="app_name">HealthEntry</string>
+    <string name="widget_title">HealthEntry</string>
+    <string name="widget_water">Water</string>
+    <string name="widget_coffee">Coffee</string>
+    <string name="widget_weight">Weight</string>
+    <string name="widget_water_detail">+8 oz</string>
+    <string name="widget_coffee_detail">95 mg</string>
+    <string name="widget_weight_detail">Enter</string>
+    <string name="widget_water_accessibility">Add 8 ounces of water with HealthEntry; permission may be requested</string>
+    <string name="widget_coffee_accessibility">Add 95 milligrams of caffeine with HealthEntry; permission may be requested</string>
+    <string name="widget_weight_accessibility">Enter weight with HealthEntry; tap Add to save</string>
+    <string name="widget_water_name">HealthEntry Water</string>
+    <string name="widget_coffee_name">HealthEntry Coffee</string>
+    <string name="widget_weight_name">HealthEntry Weight</string>
 </resources>

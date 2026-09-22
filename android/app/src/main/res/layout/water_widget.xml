@@ -1,0 +1,39 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:id="@+id/widget_action"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:minWidth="48dp"
+    android:minHeight="48dp"
+    android:orientation="vertical"
+    android:gravity="center"
+    android:padding="4dp"
+    android:background="@drawable/widget_background"
+    android:clickable="true"
+    android:focusable="true"
+    android:contentDescription="@string/widget_water_accessibility">
+    <TextView
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:gravity="center"
+        android:text="@string/widget_water"
+        android:textSize="13sp"
+        android:textStyle="bold"
+        android:textColor="@color/widget_text_primary"
+        android:includeFontPadding="false"
+        android:maxLines="1"
+        android:ellipsize="end"
+        android:importantForAccessibility="no" />
+    <TextView
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="2dp"
+        android:gravity="center"
+        android:text="@string/widget_water_detail"
+        android:textSize="12sp"
+        android:textColor="@color/widget_text_secondary"
+        android:includeFontPadding="false"
+        android:maxLines="1"
+        android:ellipsize="end"
+        android:importantForAccessibility="no" />
+</LinearLayout>
