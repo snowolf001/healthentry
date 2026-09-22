@@ -12,11 +12,7 @@ import {
 } from 'react-native';
 import { SafeAreaProvider, SafeAreaView } from 'react-native-safe-area-context';
 import { systemHealth } from './src/systemHealth';
-import {
-  validateBloodPressure,
-  validateCaffeine,
-  weightToKg,
-} from './src/systemHealth/units';
+import { validateBloodPressure, weightToKg } from './src/systemHealth/units';
 import { ActionButton } from './src/ui/ActionButton';
 import { useAppTheme } from './src/ui/theme';
 import { SettingsScreen, PrivacyScreen } from './src/settings/SettingsScreen';
@@ -24,10 +20,8 @@ import { runHealthEntry, parsePositiveDecimal } from './src/home/entry';
 import { useWeightInput, weightEntry } from './src/home/weightInput';
 import { logPreferenceFailure } from './src/preferences/weightPreferences';
 
-const caffeinePresets = [
-  { label: 'Coffee', milligrams: 95 },
-  { label: 'Espresso', milligrams: 63 },
-] as const;
+import { CaffeinePicker } from './src/home/CaffeinePicker';
+import { caffeineEntry, CaffeineKind } from './src/home/caffeine';
 
 function App() {
   const theme = useAppTheme();
@@ -37,8 +31,7 @@ function App() {
   const [busy, setBusy] = useState(false);
   const [otherWater, setOtherWater] = useState(false);
   const [waterValue, setWaterValue] = useState('');
-  const [otherCaffeine, setOtherCaffeine] = useState(false);
-  const [caffeineValue, setCaffeineValue] = useState('');
+  const [caffeineKind, setCaffeineKind] = useState<CaffeineKind | null>(null);
   const [systolicValue, setSystolicValue] = useState('');
   const [diastolicValue, setDiastolicValue] = useState('');
   const weight = useWeightInput();
@@ -113,37 +106,11 @@ function App() {
       },
     );
   }
-  const addCaffeine = useCallback(
-    (milligrams: number, label: string) => {
-      try {
-        validateCaffeine(milligrams);
-      } catch (error) {
-        setFeedback((error as Error).message);
-        return;
-      }
-      return runEntry(
-        () => systemHealth.addCaffeine({ milligrams, label }),
-        `✓ Added ${label} · ${milligrams} mg`,
-      );
-    },
-    [runEntry],
-  );
-
-  function addOtherCaffeine() {
-    const value = parsePositiveDecimal(caffeineValue) ?? NaN;
-    try {
-      validateCaffeine(value);
-    } catch (error) {
-      setFeedback((error as Error).message);
-      return;
-    }
+  function addCaffeine(entry: ReturnType<typeof caffeineEntry>) {
     return runEntry(
-      () => systemHealth.addCaffeine({ milligrams: value, label: 'Caffeine' }),
-      `✓ Added Caffeine · ${value} mg`,
-      () => {
-        setOtherCaffeine(false);
-        setCaffeineValue('');
-      },
+      () => systemHealth.addCaffeine(entry.input),
+      `✓ ${entry.success}`,
+      () => setCaffeineKind(null),
     );
   }
   function addWeight() {
@@ -295,46 +262,29 @@ function App() {
                   CAFFEINE
                 </Text>
                 <View style={styles.row}>
-                  {caffeinePresets.map(preset => (
+                  {(['Coffee', 'Espresso', 'Caffeine'] as const).map(kind => (
                     <ActionButton
-                      key={preset.label}
+                      key={kind}
+                      title={kind}
                       theme={theme}
-                      title={preset.label}
-                      detail={`${preset.milligrams} mg`}
-                      onPress={() =>
-                        addCaffeine(preset.milligrams, preset.label)
+                      testID={
+                        kind === 'Caffeine' ? 'other-caffeine' : undefined
                       }
                       disabled={busy}
+                      onPress={() =>
+                        setCaffeineKind(caffeineKind === kind ? null : kind)
+                      }
                     />
                   ))}
-                  <ActionButton
-                    title="Other"
-                    theme={theme}
-                    testID="other-caffeine"
-                    onPress={() => setOtherCaffeine(!otherCaffeine)}
-                    disabled={busy}
-                  />
                 </View>
-                {otherCaffeine && (
-                  <View style={styles.customRow}>
-                    <TextInput
-                      accessibilityLabel="Caffeine in milligrams"
-                      placeholder="Amount"
-                      placeholderTextColor={theme.textSecondary}
-                      keyboardType="decimal-pad"
-                      value={caffeineValue}
-                      onChangeText={setCaffeineValue}
-                      style={[styles.input, busy && styles.disabledControl]}
-                      editable={!busy}
-                    />
-                    <Text style={styles.unitSuffix}>mg</Text>
-                    <ActionButton
-                      title="Add"
-                      theme={theme}
-                      onPress={addOtherCaffeine}
-                      disabled={busy}
-                    />
-                  </View>
+                {caffeineKind && (
+                  <CaffeinePicker
+                    key={caffeineKind}
+                    initialKind={caffeineKind}
+                    busy={busy}
+                    onSubmit={addCaffeine}
+                    onClose={() => setCaffeineKind(null)}
+                  />
                 )}
               </View>
               <View style={styles.section}>

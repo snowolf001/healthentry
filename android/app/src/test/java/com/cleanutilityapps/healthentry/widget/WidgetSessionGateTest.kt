@@ -5,7 +5,7 @@ import org.junit.Test
 
 class WidgetSessionGateTest {
     @Test fun eachPresetIsConsumedExactlyOnce() {
-        for (action in listOf("water", "coffee", "weight")) {
+        for (action in listOf("water:8", "coffee:ask", "coffee:espresso2", "weight")) {
             val gate = WidgetSessionGate()
             val id = gate.open(action, false, false)!!
             assertEquals(action, gate.consume(id))
@@ -16,24 +16,24 @@ class WidgetSessionGateTest {
     }
     @Test fun restoreHistoryAndUnknownActionsNeverStart() {
         val gate = WidgetSessionGate()
-        assertNull(gate.open("water", true, false))
-        assertNull(gate.open("coffee", false, true))
+        assertNull(gate.open("water:8", true, false))
+        assertNull(gate.open("coffee:ask", false, true))
         assertNull(gate.open("bloodPressure", false, false))
         assertNull(gate.open(null, false, false))
         assertNotNull(gate.open("weight", false, false))
     }
     @Test fun rapidTapsAndDuplicateBeginCannotWriteTwice() {
         val gate = WidgetSessionGate()
-        val id = gate.open("water", false, false)!!
+        val id = gate.open("water:8", false, false)!!
         assertFalse(gate.beginWrite(id)) // Cannot submit an unconsumed launch.
         gate.consume(id)
         assertTrue(gate.beginWrite(id))
         assertFalse(gate.beginWrite(id))
-        assertNull(gate.open("coffee", false, false))
+        assertNull(gate.open("coffee:coffee12", false, false))
         assertFalse(gate.close(id)) // Destroy/back cannot unlock an in-flight write.
         gate.endWrite(id)
         assertTrue(gate.close(id))
-        assertNotNull(gate.open("coffee", false, false))
+        assertNotNull(gate.open("coffee:coffee12", false, false))
         assertFalse(gate.beginWrite(id)) // A stale callback cannot touch the new session.
     }
     @Test fun weightCancelAndExplicitRetryDoNotReplayLaunch() {

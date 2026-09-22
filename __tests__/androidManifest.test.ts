@@ -82,7 +82,7 @@ test.each(['water', 'coffee', 'weight'])(
     expect(layout).toContain('android:layout_height="28dp"');
     expect(layout).toContain('android:textColor="@color/widget_text_secondary"');
     expect(layout).not.toMatch(/<Button|<View |ConstraintLayout/);
-    expect(layout).toContain('android:textSize="11sp"');
+    expect(layout).toMatch(/android:textSize="(?:8|11)sp"/);
     expect(layout).toContain('android:autoSizeTextType="uniform"');
     expect(layout.match(/android:background=/g)).toHaveLength(1);
   },

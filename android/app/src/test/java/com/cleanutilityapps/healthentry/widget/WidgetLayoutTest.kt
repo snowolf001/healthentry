@@ -26,7 +26,10 @@ class WidgetLayoutTest {
         val app = RuntimeEnvironment.getApplication()
         val layouts = listOf(
             R.layout.water_widget to "8 oz",
-            R.layout.coffee_widget to "95 mg",
+            R.layout.water_widget to "99 oz",
+            R.layout.coffee_widget to "Coffee",
+            R.layout.coffee_widget to "2 shots",
+            R.layout.coffee_widget to "3 shots",
             R.layout.weight_widget to "Enter",
         )
         for (night in listOf(Configuration.UI_MODE_NIGHT_NO, Configuration.UI_MODE_NIGHT_YES)) {
@@ -39,7 +42,9 @@ class WidgetLayoutTest {
                 val density = context.resources.displayMetrics.density
                 for ((layout, caption) in layouts) {
                     for (dp in listOf(48, 56)) {
-                        val root = RemoteViews(app.packageName, layout)
+                        val root = RemoteViews(app.packageName, layout).apply {
+                            setTextViewText(R.id.widget_caption, caption)
+                        }
                             .apply(context, FrameLayout(context)) as LinearLayout
                         val size = (dp * density).roundToInt()
                         root.measure(
@@ -57,9 +62,8 @@ class WidgetLayoutTest {
                         assertTrue(kotlin.math.abs(icon.left + icon.right - size) <= 1)
                         assertTrue(kotlin.math.abs(text.left + text.right - size) <= 1)
                         assertEquals(caption, text.text.toString())
-                        assertEquals(1, text.lineCount)
-                        assertNull(text.ellipsize)
-                        assertEquals(0, text.layout.getEllipsisCount(0))
+                        assertEquals("$caption lines at $dp dp / $scale", 1, text.lineCount)
+                        assertEquals("$caption ellipsis at $dp dp / $scale", 0, text.layout.getEllipsisCount(0))
                         assertTrue("$caption width at $dp dp / $scale", text.layout.getLineWidth(0) <= text.width)
                         assertTrue("$caption height ${text.layout.height} > ${text.height} at $dp dp / $scale", text.layout.height <= text.height)
                         for (child in listOf(icon, text)) {

@@ -21,6 +21,10 @@ abstract class EntryWidgetProvider(private val layout: Int, private val action: 
             PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE)
         for (id in ids) {
             val views = RemoteViews(context.packageName, layout)
+            val defaults = WidgetPreferences.load(context)
+            val caption = if (action == "water") WidgetPreferences.waterCaption(defaults.waterOz)
+                else if (action == "coffee") WidgetPreferences.coffeeCaption(defaults.coffeeDefault) else null
+            if (caption != null) views.setTextViewText(R.id.widget_caption, caption)
             views.setOnClickPendingIntent(R.id.widget_action, pending)
             manager.updateAppWidget(id, views)
         }

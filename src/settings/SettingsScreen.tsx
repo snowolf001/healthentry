@@ -5,6 +5,7 @@ import {
   ScrollView,
   StyleSheet,
   Text,
+  TextInput,
   View,
 } from 'react-native';
 import packageInfo from '../../package.json';
@@ -12,6 +13,15 @@ import { systemHealth } from '../systemHealth';
 import type { Availability, WeightUnit } from '../systemHealth/types';
 import { ActionButton } from '../ui/ActionButton';
 import type { Theme } from '../ui/theme';
+import {
+  coffeeDefaultLabel,
+  coffeeDefaults,
+  defaultWidgetPreferences,
+  validateWaterWidgetValue,
+  waterPresets,
+  widgetPreferences,
+  type WidgetPreferences,
+} from '../preferences/widgetPreferences';
 
 type Props = {
   unit: WeightUnit;
@@ -34,6 +44,15 @@ export function SettingsScreen({
   const [availability, setAvailability] = useState<Availability | null>(null);
   const [error, setError] = useState('');
   const [opening, setOpening] = useState(false);
+  const [widgets, setWidgets] = useState<WidgetPreferences>(
+    defaultWidgetPreferences,
+  );
+  const [widgetReady, setWidgetReady] = useState(false);
+  const [widgetEditor, setWidgetEditor] = useState<'water' | 'coffee' | null>(
+    null,
+  );
+  const [customWater, setCustomWater] = useState('');
+  const [widgetError, setWidgetError] = useState('');
   useEffect(() => {
     let active = true;
     let revision = 0;
@@ -65,6 +84,42 @@ export function SettingsScreen({
       listener.remove();
     };
   }, []);
+  useEffect(() => {
+    let active = true;
+    widgetPreferences
+      .load()
+      .then(value => {
+        if (active) {
+          setWidgets(value);
+          setWidgetReady(true);
+        }
+      })
+      .catch(() => active && setWidgetError('Could not load widget defaults.'));
+    return () => {
+      active = false;
+    };
+  }, []);
+  async function saveWidgets(next: WidgetPreferences) {
+    setWidgetError('');
+    try {
+      await widgetPreferences.save(next);
+      setWidgets(next);
+      setWidgetEditor(null);
+      setCustomWater('');
+    } catch {
+      setWidgetError('Could not save widget defaults.');
+    }
+  }
+  function saveCustomWater() {
+    try {
+      return saveWidgets({
+        ...widgets,
+        waterOz: validateWaterWidgetValue(customWater),
+      });
+    } catch (reason) {
+      setWidgetError((reason as Error).message);
+    }
+  }
   async function openSettings() {
     setOpening(true);
     setError('');
@@ -114,6 +169,97 @@ export function SettingsScreen({
           ))}
         </View>
       </View>
+      <Text style={styles.sectionLabel}>WIDGETS</Text>
+      <SettingsLink
+        theme={theme}
+        label={`Water Widget Default · ${widgets.waterOz} oz`}
+        accessibilityLabel={`Water Widget Default, ${widgets.waterOz} oz`}
+        disabled={!widgetReady}
+        onPress={() =>
+          setWidgetEditor(widgetEditor === 'water' ? null : 'water')
+        }
+      />
+      {widgetEditor === 'water' && (
+        <View style={styles.choiceGrid}>
+          {waterPresets.map(value => (
+            <ActionButton
+              key={value}
+              theme={theme}
+              title={`${value} oz`}
+              compact
+              selected={widgets.waterOz === value}
+              onPress={() => saveWidgets({ ...widgets, waterOz: value })}
+            />
+          ))}
+          <ActionButton
+            theme={theme}
+            title="Custom"
+            compact
+            selected={
+              !waterPresets.includes(
+                widgets.waterOz as (typeof waterPresets)[number],
+              )
+            }
+            onPress={() => setCustomWater(String(widgets.waterOz))}
+          />
+          {!!customWater && (
+            <View style={styles.customRow}>
+              <TextInput
+                accessibilityLabel="Custom water widget amount in ounces"
+                keyboardType="decimal-pad"
+                value={customWater}
+                onChangeText={setCustomWater}
+                style={[
+                  styles.input,
+                  {
+                    borderColor: theme.border,
+                    color: theme.textPrimary,
+                    backgroundColor: theme.inputBackground,
+                  },
+                ]}
+              />
+              <Text style={styles.statusText}>oz</Text>
+              <ActionButton
+                theme={theme}
+                title="Save"
+                compact
+                onPress={saveCustomWater}
+              />
+            </View>
+          )}
+        </View>
+      )}
+      <SettingsLink
+        theme={theme}
+        label={`Coffee Widget Default · ${coffeeDefaultLabel(
+          widgets.coffeeDefault,
+        )}`}
+        accessibilityLabel={`Coffee Widget Default, ${coffeeDefaultLabel(
+          widgets.coffeeDefault,
+        )}`}
+        disabled={!widgetReady}
+        onPress={() =>
+          setWidgetEditor(widgetEditor === 'coffee' ? null : 'coffee')
+        }
+      />
+      {widgetEditor === 'coffee' && (
+        <View style={styles.choiceGrid}>
+          {coffeeDefaults.map(value => (
+            <ActionButton
+              key={value}
+              theme={theme}
+              title={coffeeDefaultLabel(value)}
+              selected={widgets.coffeeDefault === value}
+              onPress={() => saveWidgets({ ...widgets, coffeeDefault: value })}
+            />
+          ))}
+        </View>
+      )}
+      {!!widgetError && (
+        <Text accessibilityLiveRegion="polite" style={styles.error}>
+          {widgetError}
+        </Text>
+      )}
       <Text style={styles.sectionLabel}>HEALTH CONNECT</Text>
       <View style={styles.settingsRow}>
         <Text style={styles.rowTitle}>Health Connect</Text>
@@ -213,9 +359,9 @@ export function PrivacyScreen({
         system health data. It does not read or keep a health history.
       </Text>
       <Text style={styles.body}>
-        Only your preferred weight unit and last successfully entered weight are
-        saved locally to make the next entry faster. No accounts, analytics, or
-        server uploads.
+        Only input preferences, widget defaults, and the last successfully
+        entered weight are saved locally to make the next entry faster. No
+        accounts, analytics, or server uploads.
       </Text>
       <Text style={styles.body}>
         Development builds log write diagnostics to developer tools.
@@ -262,6 +408,21 @@ const createStyles = (theme: Theme) =>
       borderBottomColor: theme.border,
     },
     segment: { flexDirection: 'row', gap: 6 },
+    choiceGrid: { flexDirection: 'row', flexWrap: 'wrap', gap: 8 },
+    customRow: {
+      width: '100%',
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: 8,
+    },
+    input: {
+      flex: 1,
+      minHeight: 48,
+      borderWidth: 1,
+      borderRadius: 8,
+      padding: 10,
+      fontSize: 18,
+    },
     rowTitle: { fontSize: 17, color: theme.textPrimary },
     statusText: {
       fontSize: 15,

@@ -8,7 +8,9 @@ class WidgetSessionGate {
     private var active: Session? = null
 
     @Synchronized fun open(action: String?, restored: Boolean, fromHistory: Boolean): String? {
-        if (restored || fromHistory || active != null || action !in setOf("water", "coffee", "weight")) return null
+        val valid = action == "weight" || action?.matches(Regex("water:(?:[1-9]\\d{0,2})(?:\\.\\d+)?")) == true ||
+            action?.matches(Regex("coffee:(?:ask|coffee(?:8|12|16)|espresso(?:1|2|3))")) == true
+        if (restored || fromHistory || active != null || !valid) return null
         return UUID.randomUUID().toString().also { active = Session(it, action!!) }
     }
     @Synchronized fun consume(id: String): String? {

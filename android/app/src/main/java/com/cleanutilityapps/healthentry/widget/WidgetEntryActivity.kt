@@ -16,7 +16,7 @@ class WidgetEntryActivity : ReactActivity(), HealthPermissionOwner {
         private set
 
     override fun onCreate(savedInstanceState: Bundle?) {
-        val action = intent.data?.host
+        val action = WidgetPreferences.action(this, intent.data?.host ?: "")
         sessionId = gate.open(action, savedInstanceState != null,
             intent.flags and Intent.FLAG_ACTIVITY_LAUNCHED_FROM_HISTORY != 0) ?: ""
         // Clear even rejected/restored launches before React or task restoration can inspect them.

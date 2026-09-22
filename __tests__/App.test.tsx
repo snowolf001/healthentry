@@ -5,6 +5,11 @@ import ReactTestRenderer, { act } from 'react-test-renderer';
 import App from '../App';
 import { systemHealth } from '../src/systemHealth';
 import { weightPreferences } from '../src/preferences/weightPreferences';
+import NativeWidget from '../specs/NativeWidgetActions';
+jest.mock('../specs/NativeWidgetActions', () => ({
+  __esModule: true,
+  default: { loadPreferences: jest.fn(), savePreferences: jest.fn() },
+}));
 jest.mock('../src/preferences/weightPreferences', () => ({
   weightPreferences: { load: jest.fn(), save: jest.fn() },
   defaultWeightPreferences: { unit: 'lb', lastEnteredWeightKg: null },
@@ -39,6 +44,10 @@ beforeEach(() => {
     .mocked(weightPreferences.load)
     .mockResolvedValue({ unit: 'lb', lastEnteredWeightKg: null });
   jest.mocked(weightPreferences.save).mockResolvedValue(undefined);
+  jest
+    .mocked(NativeWidget!.loadPreferences)
+    .mockResolvedValue(JSON.stringify({ waterOz: 8, coffeeDefault: 'ask' }));
+  jest.mocked(NativeWidget!.savePreferences).mockResolvedValue(undefined);
 });
 afterEach(async () => {
   if (app) {
@@ -150,14 +159,18 @@ test.each([
       .mocked(systemHealth.addCaffeine)
       .mockResolvedValue({ id: 'id', timestamp: 'now' });
     await render();
+    await act(async () => button(label).props.onPress());
+    expect(systemHealth.addCaffeine).not.toHaveBeenCalled();
     await act(async () =>
-      button(`${label} · ${milligrams} mg`).props.onPress(),
+      button(
+        label === 'Coffee' ? '8 oz · 95 mg' : '1 shot · 63 mg',
+      ).props.onPress(),
     );
     expect(systemHealth.addCaffeine).toHaveBeenCalledWith({
       label,
       milligrams,
     });
-    expect(content()).toContain(`✓ Added ${label} · ${milligrams} mg`);
+    expect(content()).toContain(`(~${milligrams} mg caffeine)`);
   },
 );
 
@@ -379,7 +392,9 @@ test.each(['caffeine', 'weight'] as const)(
     jest.mocked(systemHealth.addWeight).mockReturnValue(pending);
     await render();
     await act(async () => weightField().props.onChangeText('165.2'));
-    const press = button(kind === 'caffeine' ? 'Coffee · 95 mg' : 'Add').props
+    if (kind === 'caffeine')
+      await act(async () => button('Coffee').props.onPress());
+    const press = button(kind === 'caffeine' ? '8 oz · 95 mg' : 'Add').props
       .onPress;
     const water = button('+8 oz').props.onPress;
     let task!: Promise<void>;
@@ -498,14 +513,128 @@ test('Android back returns through Privacy, Settings, and Home', async () => {
 });
 test('quick actions have accessible labels and pressed/disabled styles', async () => {
   await render();
-  const coffee = button('Coffee · 95 mg').findAll(
+  const coffee = button('Coffee').findAll(
     node =>
       node.props.accessibilityRole === 'button' &&
       typeof node.props.style === 'function',
   )[0];
-  expect(coffee.props.accessibilityLabel).toBe('Coffee · 95 mg');
+  expect(coffee.props.accessibilityLabel).toBe('Coffee');
   expect(coffee.props.accessibilityState.disabled).toBe(false);
   expect(coffee.props.style({ pressed: true })).not.toEqual(
     coffee.props.style({ pressed: false }),
   );
 });
+
+test('Settings saves every Water widget preset and a valid custom amount', async () => {
+  await render();
+  await act(async () => accessibleButton('Open Settings').props.onPress());
+  let current = 8;
+  for (const value of [12, 16, 20, 24] as const) {
+    await act(async () =>
+      accessibleButton(`Water Widget Default, ${current} oz`).props.onPress(),
+    );
+    await act(async () => button(`${value} oz`).props.onPress());
+    expect(NativeWidget!.savePreferences).toHaveBeenLastCalledWith(
+      value,
+      'ask',
+    );
+    current = value;
+  }
+  await act(async () =>
+    accessibleButton('Water Widget Default, 24 oz').props.onPress(),
+  );
+  await act(async () => button('Custom').props.onPress());
+  const custom = app.root.findByProps({
+    accessibilityLabel: 'Custom water widget amount in ounces',
+  });
+  await act(async () => custom.props.onChangeText('32'));
+  await act(async () => button('Save').props.onPress());
+  expect(NativeWidget!.savePreferences).toHaveBeenLastCalledWith(32, 'ask');
+  expect(accessibleButton('Water Widget Default, 32 oz')).toBeDefined();
+});
+
+test('Settings rejects invalid custom Water widget values', async () => {
+  await render();
+  await act(async () => accessibleButton('Open Settings').props.onPress());
+  await act(async () =>
+    accessibleButton('Water Widget Default, 8 oz').props.onPress(),
+  );
+  await act(async () => button('Custom').props.onPress());
+  const custom = app.root.findByProps({
+    accessibilityLabel: 'Custom water widget amount in ounces',
+  });
+  for (const value of ['0', '-1', 'abc', '100']) {
+    await act(async () => custom.props.onChangeText(value));
+    await act(async () => button('Save').props.onPress());
+    expect(content()).toContain('between 1 and 99 oz');
+  }
+  expect(NativeWidget!.savePreferences).not.toHaveBeenCalled();
+});
+
+test.each([
+  ['Ask Every Time', 'ask'],
+  ['8 oz Coffee', 'coffee8'],
+  ['12 oz Coffee', 'coffee12'],
+  ['16 oz Coffee', 'coffee16'],
+  ['1 shot Espresso', 'espresso1'],
+  ['2 shots Espresso', 'espresso2'],
+  ['3 shots Espresso', 'espresso3'],
+] as const)(
+  'Settings persists Coffee widget default %s',
+  async (label, value) => {
+    await render();
+    await act(async () => accessibleButton('Open Settings').props.onPress());
+    await act(async () =>
+      accessibleButton('Coffee Widget Default, Ask Every Time').props.onPress(),
+    );
+    await act(async () => button(label).props.onPress());
+    expect(NativeWidget!.savePreferences).toHaveBeenCalledWith(8, value);
+    expect(accessibleButton(`Coffee Widget Default, ${label}`)).toBeDefined();
+  },
+);
+
+test.each([
+  ['Coffee', '12 oz · ~140 mg', 140],
+  ['Coffee', '16 oz · ~190 mg', 190],
+  ['Espresso', '2 shots · 126 mg', 126],
+  ['Espresso', '3 shots · 189 mg', 189],
+] as const)(
+  'Home %s %s saves immediately and collapses the picker',
+  async (label, preset, milligrams) => {
+    await render();
+    await act(async () => button(label).props.onPress());
+    expect(systemHealth.addCaffeine).not.toHaveBeenCalled();
+    await act(async () => button(preset).props.onPress());
+    expect(systemHealth.addCaffeine).toHaveBeenCalledTimes(1);
+    expect(systemHealth.addCaffeine).toHaveBeenCalledWith({
+      label,
+      milligrams,
+    });
+    expect(button(preset)).toBeUndefined();
+  },
+);
+
+test.each([
+  ['Coffee', '10', 120],
+  ['Espresso', '1.5', 94.5],
+] as const)(
+  'Home custom %s shows estimate and requires Add',
+  async (label, value, milligrams) => {
+    await render();
+    await act(async () => button(label).props.onPress());
+    await act(async () =>
+      accessibleButton(`Other ${label.toLowerCase()}`).props.onPress(),
+    );
+    const input = app.root
+      .findAllByType(TextInput)
+      .find(node => node.props.accessibilityLabel.startsWith(`${label} in`))!;
+    await act(async () => input.props.onChangeText(value));
+    expect(content()).toContain(`~${milligrams} mg caffeine`);
+    expect(systemHealth.addCaffeine).not.toHaveBeenCalled();
+    await act(async () => button('Add').props.onPress());
+    expect(systemHealth.addCaffeine).toHaveBeenCalledWith({
+      label,
+      milligrams,
+    });
+  },
+);

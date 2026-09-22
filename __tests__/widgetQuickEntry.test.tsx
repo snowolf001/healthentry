@@ -41,6 +41,8 @@ jest.mock('../specs/NativeHealthPermissions', () => ({
 jest.mock('../specs/NativeWidgetActions', () => ({
   __esModule: true,
   default: {
+    loadPreferences: jest.fn(),
+    savePreferences: jest.fn(),
     consumeLaunch: jest.fn(),
     beginWrite: jest.fn(),
     endWrite: jest.fn(),
@@ -73,7 +75,7 @@ beforeEach(() => {
   jest.spyOn(Linking, 'addEventListener');
   jest.spyOn(AppState, 'addEventListener');
   consumed = new Set();
-  action = 'water';
+  action = 'water:8';
   jest.mocked(NativeWidget!.consumeLaunch).mockImplementation(async session => {
     if (consumed.has(session)) {
       return null;
@@ -106,8 +108,8 @@ async function render(sessionId = id) {
   });
 }
 const cases = [
-  ['water', 'Hydration', 'Added 8 oz water'],
-  ['coffee', 'Nutrition', 'Added 95 mg caffeine'],
+  ['water:8', 'Hydration', 'Added 8 oz water'],
+  ['coffee:ask', 'Nutrition', 'Added 8 oz coffee (~95 mg caffeine)'],
 ] as const;
 function expectRecord(type: string) {
   expect(insertRecords).toHaveBeenCalledTimes(1);
@@ -133,6 +135,8 @@ describe.each(cases)('%s quick widget', (preset, type, success) => {
       .mocked(getGrantedPermissions)
       .mockResolvedValue([{ accessType: 'write', recordType: type }]);
     await render();
+    if (preset === 'coffee:ask')
+      await act(async () => button('8 oz').props.onPress());
     expectRecord(type);
     expect(NativePermissions!.requestWritePermission).not.toHaveBeenCalled();
     expect(NativeWidget!.finish).toHaveBeenCalledWith(id, success);
@@ -154,6 +158,10 @@ describe.each(cases)('%s quick widget', (preset, type, success) => {
           }),
       );
     await render();
+    if (preset === 'coffee:ask')
+      await act(async () => {
+        button('8 oz').props.onPress();
+      });
     expect(NativePermissions!.requestWritePermission).toHaveBeenCalledWith(
       type,
     );
@@ -178,6 +186,8 @@ describe.each(cases)('%s quick widget', (preset, type, success) => {
           .mockRejectedValue(new Error('Permission request cancelled'));
       }
       await render();
+      if (preset === 'coffee:ask')
+        await act(async () => button('8 oz').props.onPress());
       expect(insertRecords).not.toHaveBeenCalled();
       expect(NativeWidget!.finish).toHaveBeenCalledWith(
         id,
@@ -203,6 +213,8 @@ describe.each(cases)('%s quick widget', (preset, type, success) => {
         jest.mocked(insertRecords).mockResolvedValueOnce([]);
       }
       await render();
+      if (preset === 'coffee:ask')
+        await act(async () => button('8 oz').props.onPress());
       expect(insertRecords).toHaveBeenCalledTimes(1);
       expect(NativeWidget!.finish).toHaveBeenCalledWith(
         id,
@@ -357,3 +369,216 @@ test('Weight insertion failure preserves the edited value and requires an explic
   await act(async () => app.update(<WidgetEntry sessionId={id} />));
   expect(insertRecords).toHaveBeenCalledTimes(1);
 });
+
+test('Coffee opens a picker without health access and Cancel writes nothing', async () => {
+  action = 'coffee:ask';
+  await render();
+  expect(button('8 oz')).toBeDefined();
+  expect(getSdkStatus).not.toHaveBeenCalled();
+  expect(NativeWidget!.beginWrite).not.toHaveBeenCalled();
+  expect(content()).not.toMatch(/BLOOD PRESSURE|Settings/);
+  await act(async () => button('Cancel').props.onPress());
+  expect(NativeWidget!.finish).toHaveBeenCalledWith(id, '');
+  expect(insertRecords).not.toHaveBeenCalled();
+});
+
+test.each([
+  ['water:12', 'Hydration', 12, 'Added 12 oz water'],
+  ['water:20', 'Hydration', 20, 'Added 20 oz water'],
+  ['coffee:coffee8', 'Coffee', 95, 'Added 8 oz coffee (~95 mg caffeine)'],
+  ['coffee:coffee12', 'Coffee', 140, 'Added 12 oz coffee (~140 mg caffeine)'],
+  ['coffee:coffee16', 'Coffee', 190, 'Added 16 oz coffee (~190 mg caffeine)'],
+  [
+    'coffee:espresso1',
+    'Espresso',
+    63,
+    'Added 1 shot espresso (~63 mg caffeine)',
+  ],
+  [
+    'coffee:espresso2',
+    'Espresso',
+    126,
+    'Added 2 shots espresso (~126 mg caffeine)',
+  ],
+  [
+    'coffee:espresso3',
+    'Espresso',
+    189,
+    'Added 3 shots espresso (~189 mg caffeine)',
+  ],
+] as const)(
+  'configured %s bypasses all input and writes once',
+  async (configured, type, amount, success) => {
+    action = configured;
+    await render();
+    expect(content()).not.toMatch(
+      /Other coffee|Select shots|BLOOD PRESSURE|Settings/,
+    );
+    expect(insertRecords).toHaveBeenCalledTimes(1);
+    if (type === 'Hydration') {
+      expect(insertRecords).toHaveBeenCalledWith([
+        expect.objectContaining({
+          recordType: 'Hydration',
+          volume: {
+            value: Math.round(amount * 29.5735295625 * 10) / 10,
+            unit: 'milliliters',
+          },
+        }),
+      ]);
+    } else {
+      expect(insertRecords).toHaveBeenCalledWith([
+        expect.objectContaining({
+          recordType: 'Nutrition',
+          name: type,
+          caffeine: { value: amount, unit: 'milligrams' },
+        }),
+      ]);
+    }
+    expect(NativeWidget!.finish).toHaveBeenCalledWith(id, success);
+    await act(async () => app.unmount());
+    await render();
+    expect(insertRecords).toHaveBeenCalledTimes(1);
+  },
+);
+
+test('configured coffee permission grant preserves the preset exactly once', async () => {
+  action = 'coffee:coffee12';
+  let grant!: (allowed: boolean) => void;
+  jest.mocked(NativePermissions!.requestWritePermission).mockImplementationOnce(
+    () =>
+      new Promise(resolve => {
+        grant = resolve;
+      }),
+  );
+  await render();
+  expect(insertRecords).not.toHaveBeenCalled();
+  expect(NativePermissions!.requestWritePermission).toHaveBeenCalledWith(
+    'Nutrition',
+  );
+  await act(async () => grant(true));
+  expect(insertRecords).toHaveBeenCalledTimes(1);
+  expect(insertRecords).toHaveBeenCalledWith([
+    expect.objectContaining({
+      name: 'Coffee',
+      caffeine: { value: 140, unit: 'milligrams' },
+    }),
+  ]);
+});
+
+test('configured water permission denial writes nothing and never replays', async () => {
+  action = 'water:20';
+  jest
+    .mocked(NativePermissions!.requestWritePermission)
+    .mockResolvedValue(false);
+  await render();
+  expect(insertRecords).not.toHaveBeenCalled();
+  expect(NativeWidget!.finish).toHaveBeenCalledWith(
+    id,
+    'Permission not granted. Nothing added.',
+  );
+  await act(async () => app.unmount());
+  await render();
+  expect(insertRecords).not.toHaveBeenCalled();
+  expect(NativePermissions!.requestWritePermission).toHaveBeenCalledTimes(1);
+});
+
+test.each([
+  ['Coffee', '8 oz', 95],
+  ['Coffee', '12 oz', 140],
+  ['Coffee', '16 oz', 190],
+  ['Espresso', '1 shot', 63],
+  ['Espresso', '2 shots', 126],
+  ['Espresso', '3 shots', 189],
+] as const)(
+  '%s %s selection writes once despite rapid taps and remount',
+  async (name, label, mg) => {
+    action = 'coffee:ask';
+    await render();
+    if (name === 'Espresso')
+      await act(async () => button('Espresso · Select shots').props.onPress());
+    let grant!: (allowed: boolean) => void;
+    jest
+      .mocked(NativePermissions!.requestWritePermission)
+      .mockImplementationOnce(
+        () =>
+          new Promise(resolve => {
+            grant = resolve;
+          }),
+      );
+    const press = button(label).props.onPress;
+    let pending: unknown;
+    await act(async () => {
+      pending = press();
+      press();
+    });
+    expect(NativePermissions!.requestWritePermission).toHaveBeenCalledTimes(1);
+    expect(NativePermissions!.requestWritePermission).toHaveBeenCalledWith(
+      'Nutrition',
+    );
+    expect(insertRecords).not.toHaveBeenCalled();
+    await act(async () => {
+      grant(true);
+      await pending;
+    });
+    expect(insertRecords).toHaveBeenCalledTimes(1);
+    expect(insertRecords).toHaveBeenCalledWith([
+      expect.objectContaining({
+        recordType: 'Nutrition',
+        name,
+        caffeine: { value: mg, unit: 'milligrams' },
+        mealType: 0,
+        metadata: { recordingMethod: 3 },
+      }),
+    ]);
+    expect(NativeWidget!.finish).toHaveBeenCalledWith(
+      id,
+      `Added ${label} ${name.toLowerCase()} (~${mg} mg caffeine)`,
+    );
+    await act(async () => app.unmount());
+    await render();
+    expect(insertRecords).toHaveBeenCalledTimes(1);
+  },
+);
+
+test.each([
+  ['Coffee', '10', 120],
+  ['Espresso', '1.5', 94.5],
+  ['Caffeine', '150', 150],
+] as const)(
+  'custom %s previews, validates and writes exactly once',
+  async (name, value, mg) => {
+    action = 'coffee:ask';
+    await render();
+    if (name === 'Espresso')
+      await act(async () => button('Espresso · Select shots').props.onPress());
+    if (name === 'Caffeine')
+      await act(async () => button('Caffeine · Enter mg').props.onPress());
+    else
+      await act(async () =>
+        button(`Other ${name.toLowerCase()}`).props.onPress(),
+      );
+    for (const invalid of ['0', '-1', 'abc', '99999']) {
+      await act(async () => field().props.onChangeText(invalid));
+      await act(async () =>
+        button(`Add ${name.toLowerCase()}`).props.onPress(),
+      );
+    }
+    expect(NativeWidget!.beginWrite).not.toHaveBeenCalled();
+    await act(async () => field().props.onChangeText(value));
+    if (name !== 'Caffeine') expect(content()).toContain(`~${mg} mg caffeine`);
+    const press = button(`Add ${name.toLowerCase()}`).props.onPress;
+    await act(async () => {
+      const pending = press();
+      press();
+      await pending;
+    });
+    expect(insertRecords).toHaveBeenCalledTimes(1);
+    expect(insertRecords).toHaveBeenCalledWith([
+      expect.objectContaining({
+        name,
+        caffeine: { value: mg, unit: 'milligrams' },
+      }),
+    ]);
+    expect(NativeWidget!.finish).toHaveBeenCalledTimes(1);
+  },
+);
