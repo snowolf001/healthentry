@@ -7,6 +7,7 @@ import androidx.health.connect.client.records.HydrationRecord
 import androidx.health.connect.client.records.NutritionRecord
 import androidx.health.connect.client.records.WeightRecord
 import androidx.health.connect.client.records.BloodPressureRecord
+import androidx.health.connect.client.records.ExerciseSessionRecord
 import androidx.lifecycle.DefaultLifecycleObserver
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.LifecycleOwner
@@ -41,6 +42,7 @@ class HealthPermissionHost(private val activity: ComponentActivity) : DefaultLif
             "Nutrition" -> HealthPermission.getWritePermission(NutritionRecord::class)
             "Weight" -> HealthPermission.getWritePermission(WeightRecord::class)
             "BloodPressure" -> HealthPermission.getWritePermission(BloodPressureRecord::class)
+            "ExerciseSession" -> HealthPermission.getWritePermission(ExerciseSessionRecord::class)
             else -> null
         }
         if (requested == null || activity.lifecycle.currentState == Lifecycle.State.DESTROYED) {
