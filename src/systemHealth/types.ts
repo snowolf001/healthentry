@@ -13,7 +13,7 @@ export type CaffeineInput = { milligrams: number; label?: string };
 export type WeightUnit = 'kg' | 'lb';
 export type WeightInput = { value: number; unit: WeightUnit };
 export type BloodPressureInput = { systolic: number; diastolic: number };
-export type ExerciseInput = { minutes: number };
+export type ExerciseInput = { minutes: number; title: string };
 export type WriteReceipt = { id: string; timestamp: string };
 
 // Authorization queries never prompt. Writes may request foreground authorization.
