@@ -37,6 +37,13 @@ export function validateWaterWidgetValue(text: string): number {
   }
   return value;
 }
+export function validateMoveMinutes(text: string): number {
+  const value = parsePositiveDecimal(text) ?? NaN;
+  if (!Number.isInteger(value) || value < 1 || value > 240) {
+    throw new Error('Enter whole minutes between 1 and 240.');
+  }
+  return value;
+}
 export function coffeeDefaultLabel(value: CoffeeWidgetDefault) {
   if (value === 'ask') return 'Ask Every Time';
   const match = /^(coffee|espresso)(\d+)$/.exec(value)!;
