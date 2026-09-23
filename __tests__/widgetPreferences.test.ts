@@ -30,7 +30,12 @@ test('defaults malformed or missing native values safely', () => {
   });
   expect(
     parseWidgetPreferences('{"waterOz":100,"coffeeDefault":"bad"}'),
-  ).toEqual({ waterOz: 8, coffeeDefault: 'ask', moveMinutes: 5, moveName: 'Exercise' });
+  ).toEqual({
+    waterOz: 8,
+    coffeeDefault: 'ask',
+    moveMinutes: 5,
+    moveName: 'Exercise',
+  });
 });
 test('validates move names', () => {
   expect(validateMoveName(' Fitness room ')).toBe('Fitness room');
@@ -67,7 +72,9 @@ test.each([
 test('native store is the single load/save boundary', async () => {
   jest
     .mocked(NativeWidget!.loadPreferences)
-    .mockResolvedValue('{"waterOz":20,"coffeeDefault":"espresso2","moveMinutes":10}');
+    .mockResolvedValue(
+      '{"waterOz":20,"coffeeDefault":"espresso2","moveMinutes":10,"moveName":"Stretching"}',
+    );
   expect(await widgetPreferences.load()).toEqual({
     waterOz: 20,
     coffeeDefault: 'espresso2',
@@ -81,5 +88,10 @@ test('native store is the single load/save boundary', async () => {
     moveMinutes: 7,
     moveName: 'Walking',
   });
-  expect(NativeWidget!.savePreferences).toHaveBeenCalledWith(24, 'coffee12', 7, 'Walking');
+  expect(NativeWidget!.savePreferences).toHaveBeenCalledWith(
+    24,
+    'coffee12',
+    7,
+    'Walking',
+  );
 });
