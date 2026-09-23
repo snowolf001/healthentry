@@ -13,9 +13,9 @@ class WidgetActionsModule(context: ReactApplicationContext) : NativeWidgetAction
         try { promise.resolve(WidgetPreferences.json(reactApplicationContext)) }
         catch (error: Exception) { promise.reject("preferences_load", "Could not load widget preferences", error) }
     }
-    override fun savePreferences(waterOz: Double, coffeeDefault: String, promise: Promise) {
+    override fun savePreferences(waterOz: Double, coffeeDefault: String, moveMinutes: Double, promise: Promise) {
         try {
-            WidgetPreferences.save(reactApplicationContext, waterOz, coffeeDefault)
+            WidgetPreferences.save(reactApplicationContext, waterOz, coffeeDefault, moveMinutes)
             promise.resolve(null)
         } catch (error: Exception) {
             promise.reject("preferences_save", "Could not save widget preferences", error)
