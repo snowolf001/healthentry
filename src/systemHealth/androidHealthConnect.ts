@@ -185,15 +185,19 @@ async function addBloodPressure(input: BloodPressureInput) {
 
 async function addExercise(input: ExerciseInput) {
   const minutes = input.minutes;
+  const title = input.title.trim();
   if (!Number.isInteger(minutes) || minutes < 1 || minutes > 240) {
     throw new Error('Enter an exercise duration between 1 and 240 minutes.');
+  }
+  if (!title || title.length > 60) {
+    throw new Error('Enter an exercise name between 1 and 60 characters.');
   }
   return writeOne('exercise', now => ({
     recordType: 'ExerciseSession',
     startTime: new Date(now - minutes * 60_000).toISOString(),
     endTime: new Date(now).toISOString(),
     exerciseType: ExerciseType.OTHER_WORKOUT,
-    title: 'Fitness room',
+    title,
     metadata: manualMetadata(),
   }));
 }
