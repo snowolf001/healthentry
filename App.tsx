@@ -134,15 +134,17 @@ function App() {
     }
   }
   async function addMove() {
-    let minutes = defaultWidgetPreferences.moveMinutes;
+    let { moveMinutes: minutes, moveName: title } = defaultWidgetPreferences;
     try {
-      minutes = (await widgetPreferences.load()).moveMinutes;
+      const preferences = await widgetPreferences.load();
+      minutes = preferences.moveMinutes;
+      title = preferences.moveName;
     } catch {
       // Preference failure must not block a health entry; use the documented default.
     }
     return runEntry(
-      () => systemHealth.addExercise({ minutes }),
-      `✓ Added ${minutes} min exercise`,
+      () => systemHealth.addExercise({ minutes, title }),
+      `✓ Added ${title} · ${minutes} min`,
     );
   }
   function addBloodPressure() {
