@@ -30,4 +30,5 @@ export const unsupportedSystemHealth: SystemHealth = {
   addCaffeine: async () => unsupportedWrite('caffeine'),
   addWeight: async () => unsupportedWrite('weight'),
   addBloodPressure: async () => unsupportedWrite('bloodPressure'),
+  addExercise: async () => unsupportedWrite('exercise'),
 };
