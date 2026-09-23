@@ -19,6 +19,7 @@ import {
   defaultWidgetPreferences,
   validateWaterWidgetValue,
   validateMoveMinutes,
+  validateMoveName,
   waterPresets,
   widgetPreferences,
   type WidgetPreferences,
@@ -54,6 +55,7 @@ export function SettingsScreen({
   );
   const [customWater, setCustomWater] = useState('');
   const [moveMinutes, setMoveMinutes] = useState('5');
+  const [moveName, setMoveName] = useState('Exercise');
   const [widgetError, setWidgetError] = useState('');
   useEffect(() => {
     let active = true;
@@ -94,6 +96,7 @@ export function SettingsScreen({
         if (active) {
           setWidgets(value);
           setMoveMinutes(String(value.moveMinutes));
+          setMoveName(value.moveName);
           setWidgetReady(true);
         }
       })
@@ -119,6 +122,15 @@ export function SettingsScreen({
         ...widgets,
         waterOz: validateWaterWidgetValue(customWater),
       });
+    } catch (reason) {
+      setWidgetError((reason as Error).message);
+    }
+  }
+  function saveMove() {
+    try {
+      const minutes = validateMoveMinutes(moveMinutes);
+      const name = validateMoveName(moveName);
+      return saveWidgets({ ...widgets, moveMinutes: minutes, moveName: name });
     } catch (reason) {
       setWidgetError((reason as Error).message);
     }
@@ -290,7 +302,36 @@ export function SettingsScreen({
             theme={theme}
             title="Save"
             compact
-            onPress={saveMoveMinutes}
+            onPress={saveMove}
+            disabled={!widgetReady}
+          />
+        </View>
+      </View>
+      <View style={styles.settingsRow}>
+        <Text style={styles.rowTitle}>Exercise name</Text>
+        <View style={styles.moveNameRow}>
+          <TextInput
+            accessibilityLabel="Exercise name"
+            value={moveName}
+            onChangeText={setMoveName}
+            maxLength={60}
+            placeholder="Exercise"
+            placeholderTextColor={theme.textSecondary}
+            style={[
+              styles.moveNameInput,
+              {
+                borderColor: theme.border,
+                color: theme.textPrimary,
+                backgroundColor: theme.inputBackground,
+              },
+            ]}
+            editable={widgetReady}
+          />
+          <ActionButton
+            theme={theme}
+            title="Save"
+            compact
+            onPress={saveMove}
             disabled={!widgetReady}
           />
         </View>
@@ -451,6 +492,15 @@ const createStyles = (theme: Theme) =>
     segment: { flexDirection: 'row', gap: 6 },
     choiceGrid: { flexDirection: 'row', flexWrap: 'wrap', gap: 8 },
     durationRow: { flexDirection: 'row', alignItems: 'center', gap: 8 },
+    moveNameRow: { flex: 1, flexDirection: 'row', alignItems: 'center', gap: 8 },
+    moveNameInput: {
+      flex: 1,
+      minHeight: 48,
+      borderWidth: 1,
+      borderRadius: 8,
+      padding: 10,
+      fontSize: 17,
+    },
     durationInput: {
       width: 72,
       minHeight: 48,
