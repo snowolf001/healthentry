@@ -19,6 +19,10 @@ import { SettingsScreen, PrivacyScreen } from './src/settings/SettingsScreen';
 import { runHealthEntry, parsePositiveDecimal } from './src/home/entry';
 import { useWeightInput, weightEntry } from './src/home/weightInput';
 import { logPreferenceFailure } from './src/preferences/weightPreferences';
+import {
+  defaultWidgetPreferences,
+  widgetPreferences,
+} from './src/preferences/widgetPreferences';
 
 import { CaffeinePicker } from './src/home/CaffeinePicker';
 import { caffeineEntry, CaffeineKind } from './src/home/caffeine';
@@ -128,6 +132,18 @@ function App() {
     } catch (error) {
       setFeedback((error as Error).message);
     }
+  }
+  async function addMove() {
+    let minutes = defaultWidgetPreferences.moveMinutes;
+    try {
+      minutes = (await widgetPreferences.load()).moveMinutes;
+    } catch {
+      // Preference failure must not block a health entry; use the documented default.
+    }
+    return runEntry(
+      () => systemHealth.addExercise({ minutes }),
+      `✓ Added ${minutes} min exercise`,
+    );
   }
   function addBloodPressure() {
     if (!systolicValue.trim()) {
@@ -329,6 +345,24 @@ function App() {
                 {!weight.ready && (
                   <Text style={styles.hint}>Loading input preference…</Text>
                 )}
+              </View>
+              <View style={styles.section}>
+                <Text accessibilityRole="header" style={styles.label}>
+                  MOVE
+                </Text>
+                <View style={styles.row}>
+                  <ActionButton
+                    title="+ Exercise"
+                    theme={theme}
+                    primary
+                    accessibilityLabel="Add exercise"
+                    onPress={addMove}
+                    disabled={busy}
+                  />
+                  <Text style={styles.hint}>
+                    Uses the duration set in Settings (default 5 min).
+                  </Text>
+                </View>
               </View>
               <View style={styles.section}>
                 <Text accessibilityRole="header" style={styles.label}>
