@@ -23,6 +23,7 @@ test('defaults malformed or missing native values safely', () => {
   expect(parseWidgetPreferences('bad')).toEqual({
     waterOz: 8,
     coffeeDefault: 'ask',
+    moveMinutes: 5,
   });
   expect(
     parseWidgetPreferences('{"waterOz":100,"coffeeDefault":"bad"}'),
