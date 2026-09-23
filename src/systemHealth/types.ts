@@ -1,4 +1,9 @@
-export type HealthInput = 'water' | 'caffeine' | 'weight' | 'bloodPressure';
+export type HealthInput =
+  | 'water'
+  | 'caffeine'
+  | 'weight'
+  | 'bloodPressure'
+  | 'exercise';
 export type Availability =
   | { status: 'available' }
   | { status: 'unavailable' | 'update-required'; message: string };
@@ -8,6 +13,7 @@ export type CaffeineInput = { milligrams: number; label?: string };
 export type WeightUnit = 'kg' | 'lb';
 export type WeightInput = { value: number; unit: WeightUnit };
 export type BloodPressureInput = { systolic: number; diastolic: number };
+export type ExerciseInput = { minutes: number };
 export type WriteReceipt = { id: string; timestamp: string };
 
 // Authorization queries never prompt. Writes may request foreground authorization.
@@ -21,4 +27,5 @@ export interface SystemHealth {
   addCaffeine(input: CaffeineInput): Promise<WriteReceipt>;
   addWeight(input: WeightInput): Promise<WriteReceipt>;
   addBloodPressure(input: BloodPressureInput): Promise<WriteReceipt>;
+  addExercise(input: ExerciseInput): Promise<WriteReceipt>;
 }
