@@ -1,6 +1,8 @@
 package com.cleanutilityapps.healthentry.permissions
 
 import androidx.activity.ComponentActivity
+import androidx.health.connect.client.HealthConnectClient
+import androidx.health.connect.client.HealthConnectFeatures
 import androidx.health.connect.client.PermissionController
 import androidx.health.connect.client.permission.HealthPermission
 import androidx.health.connect.client.records.HydrationRecord
@@ -20,6 +22,7 @@ class HealthPermissionHost(private val activity: ComponentActivity) : DefaultLif
     private var pending: Promise? = null
     private var permission: String? = null
     private var launched = false
+    private val client by lazy { HealthConnectClient.getOrCreate(activity) }
     private val launcher = activity.registerForActivityResult(
         PermissionController.createRequestPermissionResultContract()
     ) { granted ->
@@ -32,11 +35,20 @@ class HealthPermissionHost(private val activity: ComponentActivity) : DefaultLif
     }
     init { activity.lifecycle.addObserver(this) }
 
-    fun request(recordType: String, promise: Promise) {
-        if (pending != null) {
-            promise.reject("permission_busy", "A permission request is already open.")
+    fun isHistoryReadAvailable(): Boolean =
+        client.features.getFeatureStatus(
+            HealthConnectFeatures.FEATURE_READ_HEALTH_DATA_HISTORY
+        ) == HealthConnectFeatures.FEATURE_STATUS_AVAILABLE
+
+    fun requestHistoryRead(promise: Promise) {
+        if (!isHistoryReadAvailable()) {
+            promise.resolve(false)
             return
         }
+        requestPermission(HealthPermission.PERMISSION_READ_HEALTH_DATA_HISTORY, promise)
+    }
+
+    fun request(recordType: String, promise: Promise) {
         val requested = when (recordType) {
             "Hydration" -> HealthPermission.getWritePermission(HydrationRecord::class)
             "Nutrition" -> HealthPermission.getWritePermission(NutritionRecord::class)
@@ -45,7 +57,19 @@ class HealthPermissionHost(private val activity: ComponentActivity) : DefaultLif
             "ExerciseSession" -> HealthPermission.getWritePermission(ExerciseSessionRecord::class)
             else -> null
         }
-        if (requested == null || activity.lifecycle.currentState == Lifecycle.State.DESTROYED) {
+        if (requested == null) {
+            promise.reject("permission_unavailable", "Permission request unavailable.")
+            return
+        }
+        requestPermission(requested, promise)
+    }
+
+    private fun requestPermission(requested: String, promise: Promise) {
+        if (pending != null) {
+            promise.reject("permission_busy", "A permission request is already open.")
+            return
+        }
+        if (activity.lifecycle.currentState == Lifecycle.State.DESTROYED) {
             promise.reject("permission_unavailable", "Permission request unavailable.")
             return
         }
