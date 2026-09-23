@@ -16,6 +16,7 @@ import { validateBloodPressure, weightToKg } from './src/systemHealth/units';
 import { ActionButton } from './src/ui/ActionButton';
 import { useAppTheme } from './src/ui/theme';
 import { SettingsScreen, PrivacyScreen } from './src/settings/SettingsScreen';
+import { TrendsScreen } from './src/trends/TrendsScreen';
 import { runHealthEntry, parsePositiveDecimal } from './src/home/entry';
 import { useWeightInput, weightEntry } from './src/home/weightInput';
 import { logPreferenceFailure } from './src/preferences/weightPreferences';
@@ -30,7 +31,7 @@ import { caffeineEntry, CaffeineKind } from './src/home/caffeine';
 function App() {
   const theme = useAppTheme();
   const styles = createStyles(theme);
-  const [screen, setScreen] = useState<'home' | 'settings' | 'privacy'>('home');
+  const [screen, setScreen] = useState<'home' | 'settings' | 'privacy' | 'trends'>('home');
   const [feedback, setFeedback] = useState('');
   const [busy, setBusy] = useState(false);
   const [otherWater, setOtherWater] = useState(false);
@@ -188,6 +189,8 @@ function App() {
           />
         ) : screen === 'privacy' ? (
           <PrivacyScreen onBack={() => setScreen('settings')} theme={theme} />
+        ) : screen === 'trends' ? (
+          <TrendsScreen onBack={() => setScreen('home')} theme={theme} />
         ) : (
           <KeyboardAvoidingView style={styles.container} behavior="padding">
             <ScrollView
@@ -198,14 +201,24 @@ function App() {
                 <Text accessibilityRole="header" style={styles.title}>
                   HealthEntry
                 </Text>
-                <ActionButton
-                  title="⚙"
-                  theme={theme}
-                  compact
-                  onPress={() => setScreen('settings')}
-                  disabled={busy}
-                  accessibilityLabel="Open Settings"
-                />
+                <View style={styles.headerActions}>
+                  <ActionButton
+                    title="Trends"
+                    theme={theme}
+                    compact
+                    onPress={() => setScreen('trends')}
+                    disabled={busy}
+                    accessibilityLabel="Open Trends"
+                  />
+                  <ActionButton
+                    title="⚙"
+                    theme={theme}
+                    compact
+                    onPress={() => setScreen('settings')}
+                    disabled={busy}
+                    accessibilityLabel="Open Settings"
+                  />
+                </View>
               </View>
               <View style={styles.status}>
                 {busy && (
@@ -433,6 +446,7 @@ const createStyles = (theme: ReturnType<typeof useAppTheme>) =>
       flexWrap: 'wrap',
       gap: 12,
     },
+    headerActions: { flexDirection: 'row', alignItems: 'center', gap: 8 },
     title: {
       fontSize: 30,
       fontWeight: '700',
