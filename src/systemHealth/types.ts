@@ -15,6 +15,25 @@ export type WeightInput = { value: number; unit: WeightUnit };
 export type BloodPressureInput = { systolic: number; diastolic: number };
 export type ExerciseInput = { minutes: number; title: string };
 export type WriteReceipt = { id: string; timestamp: string };
+export type TrendRangeDays = 7 | 30 | 90;
+export type DailyTrend = {
+  date: string;
+  waterMl: number;
+  caffeineMg: number;
+  exerciseCount: number;
+  exerciseMinutes: number;
+};
+export type WeightTrend = { time: string; kilograms: number };
+export type BloodPressureTrend = {
+  time: string;
+  systolic: number;
+  diastolic: number;
+};
+export type TrendData = {
+  daily: DailyTrend[];
+  weights: WeightTrend[];
+  bloodPressures: BloodPressureTrend[];
+};
 
 // Authorization queries never prompt. Writes may request foreground authorization.
 // Errors reject; success means the provider acknowledged exactly one record.
@@ -28,4 +47,5 @@ export interface SystemHealth {
   addWeight(input: WeightInput): Promise<WriteReceipt>;
   addBloodPressure(input: BloodPressureInput): Promise<WriteReceipt>;
   addExercise(input: ExerciseInput): Promise<WriteReceipt>;
+  readTrends(days: TrendRangeDays): Promise<TrendData>;
 }
