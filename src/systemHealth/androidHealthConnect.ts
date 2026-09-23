@@ -2,6 +2,7 @@ import nativeHealthPermissions from '../../specs/NativeHealthPermissions';
 import {
   BloodPressureBodyPosition,
   BloodPressureMeasurementLocation,
+  ExerciseType,
   getGrantedPermissions,
   getSdkStatus,
   initialize,
@@ -20,6 +21,7 @@ import type {
   CaffeineInput,
   WeightInput,
   BloodPressureInput,
+  ExerciseInput,
 } from './types';
 import {
   validateBloodPressure,
@@ -75,6 +77,7 @@ const recordTypes = {
   caffeine: 'Nutrition',
   weight: 'Weight',
   bloodPressure: 'BloodPressure',
+  exercise: 'ExerciseSession',
 } as const;
 
 async function authorize(
@@ -180,6 +183,21 @@ async function addBloodPressure(input: BloodPressureInput) {
   }));
 }
 
+async function addExercise(input: ExerciseInput) {
+  const minutes = input.minutes;
+  if (!Number.isInteger(minutes) || minutes < 1 || minutes > 240) {
+    throw new Error('Enter an exercise duration between 1 and 240 minutes.');
+  }
+  return writeOne('exercise', now => ({
+    recordType: 'ExerciseSession',
+    startTime: new Date(now - minutes * 60_000).toISOString(),
+    endTime: new Date(now).toISOString(),
+    exerciseType: ExerciseType.OTHER_WORKOUT,
+    title: 'Fitness room',
+    metadata: manualMetadata(),
+  }));
+}
+
 export const androidSystemHealth: SystemHealth = {
   async openSettings() {
     const availability = await getAvailability();
@@ -195,4 +213,5 @@ export const androidSystemHealth: SystemHealth = {
   addCaffeine,
   addWeight,
   addBloodPressure,
+  addExercise,
 };
