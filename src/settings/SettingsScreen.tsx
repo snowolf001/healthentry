@@ -135,14 +135,6 @@ export function SettingsScreen({
       setWidgetError((reason as Error).message);
     }
   }
-  function saveMoveMinutes() {
-    try {
-      const value = validateMoveMinutes(moveMinutes);
-      return saveWidgets({ ...widgets, moveMinutes: value });
-    } catch (reason) {
-      setWidgetError((reason as Error).message);
-    }
-  }
   async function openSettings() {
     setOpening(true);
     setError('');
@@ -437,8 +429,8 @@ export function PrivacyScreen({
       </View>
       <Text style={styles.body}>
         HealthEntry writes water, caffeine, weight, blood pressure, and exercise
-        sessions to your system health data. It does not read or keep a health
-        history.
+        sessions to your system health data. Trends reads those health data types
+        directly from Health Connect. HealthEntry does not keep a second health history.
       </Text>
       <Text style={styles.body}>
         Only input preferences, widget defaults, and the last successfully
