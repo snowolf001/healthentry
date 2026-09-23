@@ -25,6 +25,7 @@ jest.mock('../src/systemHealth', () => ({
     addCaffeine: jest.fn(),
     addBloodPressure: jest.fn(),
     addExercise: jest.fn(),
+    readTrends: jest.fn(),
   },
 }));
 jest.mock('react-native-safe-area-context', () => ({
@@ -47,7 +48,7 @@ beforeEach(() => {
   jest.mocked(weightPreferences.save).mockResolvedValue(undefined);
   jest
     .mocked(NativeWidget!.loadPreferences)
-    .mockResolvedValue(JSON.stringify({ waterOz: 8, coffeeDefault: 'ask', moveMinutes: 5 }));
+    .mockResolvedValue(JSON.stringify({ waterOz: 8, coffeeDefault: 'ask', moveMinutes: 5, moveName: 'Exercise' }));
   jest.mocked(NativeWidget!.savePreferences).mockResolvedValue(undefined);
 });
 afterEach(async () => {
@@ -220,12 +221,12 @@ test('Move writes the configured short exercise duration', async () => {
   jest
     .mocked(NativeWidget!.loadPreferences)
     .mockResolvedValue(
-      JSON.stringify({ waterOz: 8, coffeeDefault: 'ask', moveMinutes: 7 }),
+      JSON.stringify({ waterOz: 8, coffeeDefault: 'ask', moveMinutes: 7, moveName: 'Fitness room' }),
     );
   await render();
   await act(async () => accessibleButton('Add exercise').props.onPress());
-  expect(systemHealth.addExercise).toHaveBeenCalledWith({ minutes: 7 });
-  expect(content()).toContain('✓ Added 7 min exercise');
+  expect(systemHealth.addExercise).toHaveBeenCalledWith({ minutes: 7, title: 'Fitness room' });
+  expect(content()).toContain('✓ Added Fitness room · 7 min');
 });
 
 test('valid blood pressure writes once and clears both fields after success', async () => {
@@ -550,7 +551,7 @@ test('Settings saves every Water widget preset and a valid custom amount', async
       accessibleButton(`Water Widget Default, ${current} oz`).props.onPress(),
     );
     await act(async () => button(`${value} oz`).props.onPress());
-    expect(NativeWidget!.savePreferences).toHaveBeenLastCalledWith(value, 'ask', 5);
+    expect(NativeWidget!.savePreferences).toHaveBeenLastCalledWith(value, 'ask', 5, 'Exercise');
     current = value;
   }
   await act(async () =>
@@ -562,7 +563,7 @@ test('Settings saves every Water widget preset and a valid custom amount', async
   });
   await act(async () => custom.props.onChangeText('32'));
   await act(async () => button('Save').props.onPress());
-  expect(NativeWidget!.savePreferences).toHaveBeenLastCalledWith(32, 'ask', 5);
+  expect(NativeWidget!.savePreferences).toHaveBeenLastCalledWith(32, 'ask', 5, 'Exercise');
   expect(accessibleButton('Water Widget Default, 32 oz')).toBeDefined();
 });
 
@@ -601,7 +602,7 @@ test.each([
       accessibleButton('Coffee Widget Default, Ask Every Time').props.onPress(),
     );
     await act(async () => button(label).props.onPress());
-    expect(NativeWidget!.savePreferences).toHaveBeenCalledWith(8, value, 5);
+    expect(NativeWidget!.savePreferences).toHaveBeenCalledWith(8, value, 5, 'Exercise');
     expect(accessibleButton(`Coffee Widget Default, ${label}`)).toBeDefined();
   },
 );
