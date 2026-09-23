@@ -12,10 +12,12 @@ export type CoffeeWidgetDefault =
 export type WidgetPreferences = {
   waterOz: number;
   coffeeDefault: CoffeeWidgetDefault;
+  moveMinutes: number;
 };
 export const defaultWidgetPreferences: WidgetPreferences = {
   waterOz: 8,
   coffeeDefault: 'ask',
+  moveMinutes: 5,
 };
 export const waterPresets = [8, 12, 16, 20, 24] as const;
 export const coffeeDefaults: readonly CoffeeWidgetDefault[] = [
@@ -58,6 +60,13 @@ export function parseWidgetPreferences(json: string): WidgetPreferences {
       )
         ? (input.coffeeDefault as CoffeeWidgetDefault)
         : 'ask',
+      moveMinutes:
+        typeof input.moveMinutes === 'number' &&
+        Number.isInteger(input.moveMinutes) &&
+        input.moveMinutes >= 1 &&
+        input.moveMinutes <= 240
+          ? input.moveMinutes
+          : 5,
     };
   } catch {
     return { ...defaultWidgetPreferences };
@@ -72,6 +81,10 @@ export const widgetPreferences = {
     return parseWidgetPreferences(await bridge().loadPreferences());
   },
   async save(value: WidgetPreferences) {
-    await bridge().savePreferences(value.waterOz, value.coffeeDefault);
+    await bridge().savePreferences(
+      value.waterOz,
+      value.coffeeDefault,
+      value.moveMinutes,
+    );
   },
 };
