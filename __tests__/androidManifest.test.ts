@@ -16,6 +16,7 @@ test('manifest declares only the supported Trends read and entry write permissio
   expect(permissions).toEqual([
     'android.permission.health.READ_BLOOD_PRESSURE',
     'android.permission.health.READ_EXERCISE',
+    'android.permission.health.READ_HEALTH_DATA_HISTORY',
     'android.permission.health.READ_HYDRATION',
     'android.permission.health.READ_NUTRITION',
     'android.permission.health.READ_WEIGHT',
