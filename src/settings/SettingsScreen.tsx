@@ -18,6 +18,7 @@ import {
   coffeeDefaults,
   defaultWidgetPreferences,
   validateWaterWidgetValue,
+  validateMoveMinutes,
   waterPresets,
   widgetPreferences,
   type WidgetPreferences,
@@ -52,6 +53,7 @@ export function SettingsScreen({
     null,
   );
   const [customWater, setCustomWater] = useState('');
+  const [moveMinutes, setMoveMinutes] = useState('5');
   const [widgetError, setWidgetError] = useState('');
   useEffect(() => {
     let active = true;
@@ -91,6 +93,7 @@ export function SettingsScreen({
       .then(value => {
         if (active) {
           setWidgets(value);
+          setMoveMinutes(String(value.moveMinutes));
           setWidgetReady(true);
         }
       })
@@ -116,6 +119,14 @@ export function SettingsScreen({
         ...widgets,
         waterOz: validateWaterWidgetValue(customWater),
       });
+    } catch (reason) {
+      setWidgetError((reason as Error).message);
+    }
+  }
+  function saveMoveMinutes() {
+    try {
+      const value = validateMoveMinutes(moveMinutes);
+      return saveWidgets({ ...widgets, moveMinutes: value });
     } catch (reason) {
       setWidgetError((reason as Error).message);
     }
@@ -255,6 +266,35 @@ export function SettingsScreen({
           ))}
         </View>
       )}
+      <Text style={styles.sectionLabel}>MOVE</Text>
+      <View style={styles.settingsRow}>
+        <Text style={styles.rowTitle}>Default duration</Text>
+        <View style={styles.durationRow}>
+          <TextInput
+            accessibilityLabel="Default move duration in minutes"
+            keyboardType="number-pad"
+            value={moveMinutes}
+            onChangeText={text => setMoveMinutes(text.replace(/[^0-9]/g, ''))}
+            style={[
+              styles.durationInput,
+              {
+                borderColor: theme.border,
+                color: theme.textPrimary,
+                backgroundColor: theme.inputBackground,
+              },
+            ]}
+            editable={widgetReady}
+          />
+          <Text style={styles.statusText}>min</Text>
+          <ActionButton
+            theme={theme}
+            title="Save"
+            compact
+            onPress={saveMoveMinutes}
+            disabled={!widgetReady}
+          />
+        </View>
+      </View>
       {!!widgetError && (
         <Text accessibilityLiveRegion="polite" style={styles.error}>
           {widgetError}
@@ -288,8 +328,8 @@ export function SettingsScreen({
       <Text style={styles.sectionLabel}>ABOUT</Text>
       <Text style={styles.appName}>HealthEntry</Text>
       <Text style={styles.body}>
-        Quickly add water, caffeine, weight, and blood pressure to your system
-        health data.
+        Quickly add water, caffeine, weight, blood pressure, and short exercise
+        sessions to your system health data.
       </Text>
       <SettingsLink theme={theme} label="Privacy Policy" onPress={onPrivacy} />
       <Text style={styles.version}>Version {packageInfo.version}</Text>
@@ -355,8 +395,9 @@ export function PrivacyScreen({
         </Text>
       </View>
       <Text style={styles.body}>
-        HealthEntry writes water, caffeine, weight, and blood pressure to your
-        system health data. It does not read or keep a health history.
+        HealthEntry writes water, caffeine, weight, blood pressure, and exercise
+        sessions to your system health data. It does not read or keep a health
+        history.
       </Text>
       <Text style={styles.body}>
         Only input preferences, widget defaults, and the last successfully
@@ -409,6 +450,16 @@ const createStyles = (theme: Theme) =>
     },
     segment: { flexDirection: 'row', gap: 6 },
     choiceGrid: { flexDirection: 'row', flexWrap: 'wrap', gap: 8 },
+    durationRow: { flexDirection: 'row', alignItems: 'center', gap: 8 },
+    durationInput: {
+      width: 72,
+      minHeight: 48,
+      borderWidth: 1,
+      borderRadius: 8,
+      padding: 10,
+      fontSize: 18,
+      textAlign: 'center',
+    },
     customRow: {
       width: '100%',
       flexDirection: 'row',
