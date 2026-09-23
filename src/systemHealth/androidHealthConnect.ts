@@ -238,6 +238,24 @@ async function readTrends(days: TrendRangeDays): Promise<TrendData> {
     'BloodPressure',
     'ExerciseSession',
   ] as const;
+  if (days === 90) {
+    if (!nativeHealthPermissions) {
+      throw new Error('History permission request unavailable. Reopen HealthEntry.');
+    }
+    const available = await nativeHealthPermissions.isHistoryReadAvailable();
+    if (!available) {
+      throw new Error(
+        '90-day Trends require Health Connect history access, which is unavailable on this device. Update Health Connect or use 30D.',
+      );
+    }
+    const historyGranted =
+      await nativeHealthPermissions.requestHistoryReadPermission();
+    if (!historyGranted) {
+      throw new Error(
+        '90-day Trends require history access. Grant HealthEntry permission to read health data older than 30 days, or use 30D.',
+      );
+    }
+  }
   const granted = await getGrantedPermissions();
   const hasRead = (recordType: string) =>
     granted.some(
