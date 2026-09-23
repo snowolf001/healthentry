@@ -1,17 +1,12 @@
-HealthEntry Android icon pack
+HealthEntry Android launcher icons
 
-Each mipmap density contains:
-- ic_launcher.png        regular white-background icon
-- ic_launcher_round.png  circular white-background icon with transparent outside corners
+Copy each mipmap-* folder into:
+android/app/src/main/res/
 
-Sizes:
-mdpi 48x48
-hdpi 72x72
-xhdpi 96x96
-xxhdpi 144x144
-xxxhdpi 192x192
+Included:
+- ic_launcher.png
+- ic_launcher_round.png
+for mdpi, hdpi, xhdpi, xxhdpi, xxxhdpi
+- 512x512 Play Store masters
 
-Also included:
-- Play Store 512x512
-- 1024x1024 master
-- 512x512 and 1024x1024 round masters
+The artwork is intentionally scaled large within the icon area.
