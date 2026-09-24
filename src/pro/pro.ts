@@ -4,6 +4,7 @@ export type ProState = {
   isPro: boolean;
   widgetTrialStarted: boolean;
   widgetTrialDaysRemaining: number;
+  debugProOverride?: boolean;
 };
 export type ProProduct = { productId: string; title: string; price: string; offerToken: string };
 
@@ -12,6 +13,10 @@ const fallback: ProState = { isPro: false, widgetTrialStarted: false, widgetTria
 export async function getProState(): Promise<ProState> {
   if (!NativeProBilling) return fallback;
   try { return JSON.parse(await NativeProBilling.getState()) as ProState; } catch { return fallback; }
+}
+export async function setDebugProOverride(active: boolean): Promise<ProState> {
+  if (!NativeProBilling || !__DEV__) return getProState();
+  return JSON.parse(await NativeProBilling.setDebugProOverride(active)) as ProState;
 }
 export async function loadProProducts(): Promise<ProProduct[]> {
   if (!NativeProBilling) return [];
