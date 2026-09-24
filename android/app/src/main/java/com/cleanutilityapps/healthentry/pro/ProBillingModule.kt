@@ -49,6 +49,11 @@ class ProBillingModule(context: ReactApplicationContext) : NativeProBillingSpec(
         }, { promise.resolve(ProAccess.stateJson(reactApplicationContext)) })
     }
 
+    override fun setDebugProOverride(active: Boolean, promise: Promise) {
+        ProAccess.setDebugOverride(reactApplicationContext, active)
+        promise.resolve(ProAccess.stateJson(reactApplicationContext))
+    }
+
     override fun loadProducts(promise: Promise) {
         connect({ billing ->
             val products = PRO_IDS.map {
