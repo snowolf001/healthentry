@@ -2,6 +2,7 @@ import { useEffect, useMemo, useRef, useState } from 'react';
 import {
   AppState,
   Pressable,
+  Switch,
   ScrollView,
   StyleSheet,
   Text,
@@ -13,7 +14,7 @@ import { systemHealth } from '../systemHealth';
 import type { Availability, WeightUnit } from '../systemHealth/types';
 import { ActionButton } from '../ui/ActionButton';
 import type { Theme } from '../ui/theme';
-import { getProState, type ProState } from '../pro/pro';
+import { getProState, setDebugProOverride, type ProState } from '../pro/pro';
 import {
   coffeeDefaultLabel,
   coffeeDefaults,
@@ -190,6 +191,21 @@ export function SettingsScreen({
         accessibilityLabel="Health Entry Pro"
         onPress={onPro}
       />
+      {__DEV__ && (
+        <View style={styles.settingsRow}>
+          <View>
+            <Text style={styles.rowTitle}>Debug Pro Access</Text>
+            <Text style={styles.statusText}>Overrides Pro locally in debug builds</Text>
+          </View>
+          <Switch
+            accessibilityLabel="Debug Pro Access"
+            value={pro?.debugProOverride === true}
+            onValueChange={active => {
+              void setDebugProOverride(active).then(setPro);
+            }}
+          />
+        </View>
+      )}
       <Text style={styles.sectionLabel}>UNITS</Text>
       <View style={styles.settingsRow}>
         <Text style={styles.rowTitle}>Weight</Text>
