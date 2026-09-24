@@ -186,8 +186,8 @@ export function SettingsScreen({
       <Text style={styles.sectionLabel}>PRO</Text>
       <SettingsLink
         theme={theme}
-        label={pro?.isPro ? 'HealthEntry Pro · Active' : 'HealthEntry Pro'}
-        accessibilityLabel="HealthEntry Pro"
+        label={pro?.isPro ? 'Health Entry Pro · Active' : 'Health Entry Pro'}
+        accessibilityLabel="Health Entry Pro"
         onPress={onPro}
       />
       <Text style={styles.sectionLabel}>UNITS</Text>
@@ -278,7 +278,7 @@ export function SettingsScreen({
         label={`Coffee Widget Default · ${coffeeDefaultLabel(
           widgets.coffeeDefault,
         )}`}
-        accessibilityLabel={`Coffee Widget Default, ${coffeeDefaultLabel(
+        accessibilityLabel={`Coffee Widget, ${coffeeDefaultLabel(
           widgets.coffeeDefault,
         )}`}
         disabled={!widgetReady}
