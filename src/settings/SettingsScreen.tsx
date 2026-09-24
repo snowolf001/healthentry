@@ -277,8 +277,7 @@ export function SettingsScreen({
         </View>
       )}
       <Text style={styles.sectionLabel}>MOVE</Text>
-      <View style={styles.settingsRow}>
-        <Text style={styles.rowTitle}>Default duration</Text>
+      <Text style={styles.fieldLabel}>Default duration</Text>
         <View style={styles.durationRow}>
           <TextInput
             accessibilityLabel="Default move duration in minutes"
@@ -304,9 +303,7 @@ export function SettingsScreen({
             disabled={!widgetReady}
           />
         </View>
-      </View>
-      <View style={styles.settingsRow}>
-        <Text style={styles.rowTitle}>Exercise name</Text>
+      <Text style={styles.fieldLabel}>Exercise name</Text>
         <View style={styles.moveNameRow}>
           <TextInput
             accessibilityLabel="Exercise name"
@@ -333,43 +330,29 @@ export function SettingsScreen({
             disabled={!widgetReady}
           />
         </View>
-      </View>
       {!!widgetError && (
         <Text accessibilityLiveRegion="polite" style={styles.error}>
           {widgetError}
         </Text>
       )}
       <Text style={styles.sectionLabel}>HEALTH CONNECT</Text>
-      <View style={styles.settingsRow}>
-        <Text style={styles.rowTitle}>Health Connect</Text>
-        <Text accessibilityLiveRegion="polite" style={styles.statusText}>
-          {availability?.status === 'available'
-            ? 'Available'
-            : availability
-            ? availability.message
-            : error
-            ? 'Status unavailable'
-            : 'Checking…'}
-        </Text>
-      </View>
       <SettingsLink
         theme={theme}
-        label={opening ? 'Opening…' : 'Manage access'}
+        label={opening ? 'Opening…' : 'Manage Health Connect'}
         accessibilityLabel="Manage Health Connect access"
         disabled={opening || availability?.status !== 'available'}
         onPress={openSettings}
       />
+      {availability && availability.status !== 'available' && (
+        <Text accessibilityLiveRegion="polite" style={styles.statusText}>
+          {availability.message}
+        </Text>
+      )}
       {!!error && (
         <Text accessibilityLiveRegion="polite" style={styles.error}>
           {error}
         </Text>
       )}
-      <Text style={styles.sectionLabel}>ABOUT</Text>
-      <Text style={styles.appName}>HealthEntry</Text>
-      <Text style={styles.body}>
-        Quickly add water, caffeine, weight, blood pressure, and short exercise
-        sessions to your system health data.
-      </Text>
       <SettingsLink theme={theme} label="Privacy Policy" onPress={onPrivacy} />
       <Text style={styles.version}>Version {packageInfo.version}</Text>
     </ScrollView>
@@ -434,9 +417,9 @@ export function PrivacyScreen({
         </Text>
       </View>
       <Text style={styles.body}>
-        HealthEntry writes water, caffeine, weight, blood pressure, and exercise
+        Health Entry writes water, caffeine, weight, blood pressure, and exercise
         sessions to your system health data. Trends reads those health data types
-        directly from Health Connect. HealthEntry does not keep a second health history.
+        directly from Health Connect. Health Entry does not keep a second health history.
       </Text>
       <Text style={styles.body}>
         Only input preferences, widget defaults, and the last successfully
@@ -490,7 +473,8 @@ const createStyles = (theme: Theme) =>
     segment: { flexDirection: 'row', gap: 6 },
     choiceGrid: { flexDirection: 'row', flexWrap: 'wrap', gap: 8 },
     durationRow: { flexDirection: 'row', alignItems: 'center', gap: 8 },
-    moveNameRow: { flex: 1, flexDirection: 'row', alignItems: 'center', gap: 8 },
+    fieldLabel: { fontSize: 17, color: theme.textPrimary, marginTop: 2 },
+    moveNameRow: { flexDirection: 'row', alignItems: 'center', gap: 8 },
     moveNameInput: {
       flex: 1,
       minHeight: 48,
@@ -500,7 +484,7 @@ const createStyles = (theme: Theme) =>
       fontSize: 17,
     },
     durationInput: {
-      width: 72,
+      width: 96,
       minHeight: 48,
       borderWidth: 1,
       borderRadius: 8,
