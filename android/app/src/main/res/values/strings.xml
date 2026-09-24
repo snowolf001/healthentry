@@ -13,8 +13,8 @@
     <string name="widget_coffee_accessibility">Choose coffee size or espresso shots with HealthEntry; permission may be requested</string>
     <string name="widget_weight_accessibility">Enter weight with HealthEntry; tap Add to save</string>
     <string name="widget_exercise_accessibility">Add the configured exercise session with HealthEntry; permission may be requested</string>
-    <string name="widget_water_name">HealthEntry Water</string>
-    <string name="widget_coffee_name">HealthEntry Coffee</string>
-    <string name="widget_weight_name">HealthEntry Weight</string>
-    <string name="widget_exercise_name">HealthEntry Exercise</string>
+    <string name="widget_water_name">Water</string>
+    <string name="widget_coffee_name">Coffee</string>
+    <string name="widget_weight_name">Weight</string>
+    <string name="widget_exercise_name">Exercise</string>
 </resources>
