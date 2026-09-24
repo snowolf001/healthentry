@@ -13,6 +13,18 @@ class WidgetActionsModule(context: ReactApplicationContext) : NativeWidgetAction
         try { promise.resolve(WidgetPreferences.json(reactApplicationContext)) }
         catch (error: Exception) { promise.reject("preferences_load", "Could not load widget preferences", error) }
     }
+    override fun loadRecentQuickEntries(promise: Promise) {
+        try { promise.resolve(WidgetPreferences.recentQuickEntriesJson(reactApplicationContext)) }
+        catch (error: Exception) { promise.reject("quick_entries_load", "Could not load recent quick entries", error) }
+    }
+    override fun saveRecentWaterOz(value: Double, promise: Promise) {
+        try { WidgetPreferences.saveRecentWaterOz(reactApplicationContext, value); promise.resolve(null) }
+        catch (error: Exception) { promise.reject("quick_entries_save", "Could not save recent water amount", error) }
+    }
+    override fun saveRecentMoveMinutes(value: Double, promise: Promise) {
+        try { WidgetPreferences.saveRecentMoveMinutes(reactApplicationContext, value); promise.resolve(null) }
+        catch (error: Exception) { promise.reject("quick_entries_save", "Could not save recent exercise duration", error) }
+    }
     override fun savePreferences(waterOz: Double, coffeeDefault: String, moveMinutes: Double, moveName: String, promise: Promise) {
         try {
             WidgetPreferences.save(reactApplicationContext, waterOz, coffeeDefault, moveMinutes, moveName)
