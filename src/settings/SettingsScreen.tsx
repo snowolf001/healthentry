@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import {
   AppState,
   Pressable,
@@ -58,6 +58,7 @@ export function SettingsScreen({
   const [moveMinutes, setMoveMinutes] = useState('5');
   const [moveName, setMoveName] = useState('Exercise');
   const [widgetError, setWidgetError] = useState('');
+  const scrollRef = useRef<ScrollView>(null);
   useEffect(() => {
     let active = true;
     let revision = 0;
@@ -154,6 +155,7 @@ export function SettingsScreen({
   }
   return (
     <ScrollView
+      ref={scrollRef}
       contentContainerStyle={styles.content}
       keyboardShouldPersistTaps="handled"
       automaticallyAdjustKeyboardInsets
@@ -325,6 +327,7 @@ export function SettingsScreen({
               },
             ]}
             editable={widgetReady}
+            onFocus={() => setTimeout(() => scrollRef.current?.scrollToEnd({ animated: true }), 150)}
           />
           <ActionButton
             theme={theme}
