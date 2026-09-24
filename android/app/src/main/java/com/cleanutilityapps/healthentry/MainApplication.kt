@@ -8,6 +8,7 @@ import com.facebook.react.ReactNativeApplicationEntryPoint.loadReactNative
 import com.facebook.react.defaults.DefaultReactHost.getDefaultReactHost
 import com.cleanutilityapps.healthentry.preferences.WeightPreferencesPackage
 import com.cleanutilityapps.healthentry.widget.WidgetActionsPackage
+import com.cleanutilityapps.healthentry.pro.ProBillingPackage
 
 class MainApplication : Application(), ReactApplication {
 
@@ -18,6 +19,7 @@ class MainApplication : Application(), ReactApplication {
         PackageList(this).packages.apply {
           add(WeightPreferencesPackage())
           add(WidgetActionsPackage())
+          add(ProBillingPackage())
         },
     )
   }
