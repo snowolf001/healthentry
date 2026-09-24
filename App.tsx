@@ -63,7 +63,7 @@ function App() {
     void widgetPreferences.load().then(preferences => setMoveName(preferences.moveName)).catch(() => {});
     void NativeWidgetActions?.loadWidgetDiscovery().then(raw => {
       const state = JSON.parse(raw) as { dismissed: boolean; hasWidget: boolean; pinSupported: boolean };
-      setShowWidgetDiscovery(!state.dismissed && !state.hasWidget);
+      setShowWidgetDiscovery(!state.dismissed);
       setWidgetPinSupported(state.pinSupported);
     }).catch(() => {});
   }, []);
@@ -229,7 +229,9 @@ function App() {
     }
     try {
       const requested = await NativeWidgetActions?.requestPinWidget(widget);
-      if (!requested) {
+      if (requested) {
+        await dismissWidgetDiscovery();
+      } else {
         void Linking.openURL('https://cleanutilityapps.com/healthentry/widgets/');
       }
     } catch {
@@ -581,7 +583,7 @@ const createStyles = (theme: ReturnType<typeof useAppTheme>) =>
     },
     widgetDiscoveryHeader: { flexDirection: 'row', alignItems: 'flex-start', gap: 10 },
     widgetDiscoveryCopy: { flex: 1, gap: 4 },
-    widgetDiscoveryTitle: { fontSize: 16, fontWeight: '700', color: theme.text },
+    widgetDiscoveryTitle: { fontSize: 16, fontWeight: '700', color: theme.textPrimary },
     widgetDiscoveryText: { fontSize: 13, lineHeight: 18, color: theme.textSecondary },
     widgetDiscoveryActions: { flexDirection: 'row', flexWrap: 'wrap', gap: 8 },
     dismissWidget: { fontSize: 24, lineHeight: 24, color: theme.textSecondary, paddingHorizontal: 4 },
