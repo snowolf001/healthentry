@@ -64,6 +64,21 @@ export default function WidgetEntry({ sessionId }: { sessionId: string }) {
           if (failure) {
             await widgetBridge().finish(sessionId, failure);
           }
+        } else if (kind === 'exercise') {
+          const parts = next.split(':');
+          const minutes = Number(parts[1]);
+          const title = decodeURIComponent(parts.slice(2).join(':') || 'Exercise');
+          if (!Number.isInteger(minutes) || minutes < 1 || minutes > 240) {
+            throw new Error('Entry unavailable.');
+          }
+          submitting.current = true;
+          setBusy(true);
+          const failure = await submitWidgetEntry(
+            sessionId,
+            () => systemHealth.addExercise({ minutes, title }),
+            `Added ${title} · ${minutes} min`,
+          );
+          if (failure) await widgetBridge().finish(sessionId, failure);
         } else if (kind === 'coffee' && preset !== 'ask') {
           const match = /^(coffee|espresso)(\d+)$/.exec(preset);
           if (!match) throw new Error('Entry unavailable.');
