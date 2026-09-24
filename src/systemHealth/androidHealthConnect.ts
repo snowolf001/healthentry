@@ -199,7 +199,7 @@ async function addExercise(input: ExerciseInput) {
     recordType: 'ExerciseSession',
     startTime: new Date(now - minutes * 60_000).toISOString(),
     endTime: new Date(now).toISOString(),
-    exerciseType: ExerciseType.OTHER_WORKOUT ?? 0,
+    exerciseType: ExerciseType.OTHER_WORKOUT,
     title,
     metadata: manualMetadata(),
   }));
