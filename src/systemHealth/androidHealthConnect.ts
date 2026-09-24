@@ -8,7 +8,6 @@ import {
   initialize,
   insertRecords,
   readRecords,
-  requestPermission,
   MealType,
   openHealthConnectSettings,
   RecordingMethod,
@@ -200,7 +199,7 @@ async function addExercise(input: ExerciseInput) {
     recordType: 'ExerciseSession',
     startTime: new Date(now - minutes * 60_000).toISOString(),
     endTime: new Date(now).toISOString(),
-    exerciseType: ExerciseType.OTHER_WORKOUT,
+    exerciseType: ExerciseType.OTHER_WORKOUT ?? 0,
     title,
     metadata: manualMetadata(),
   }));
@@ -264,15 +263,11 @@ async function readTrends(days: TrendRangeDays): Promise<TrendData> {
     );
   const missing = recordTypeList.filter(recordType => !hasRead(recordType));
   if (missing.length) {
-    const result = await requestPermission(
-      missing.map(recordType => ({ accessType: 'read' as const, recordType })),
-    );
-    const allowed = new Set(
-      result
-        .filter(permission => permission.accessType === 'read')
-        .map(permission => permission.recordType),
-    );
-    if (missing.some(recordType => !allowed.has(recordType))) {
+    if (!nativeHealthPermissions) {
+      throw new Error('Health data permission request unavailable. Reopen HealthEntry.');
+    }
+    const allowed = await nativeHealthPermissions.requestReadPermissions([...missing]);
+    if (!allowed) {
       throw new Error(
         'Health data read access was not granted. Enable HealthEntry read access in Health Connect to view Trends.',
       );
