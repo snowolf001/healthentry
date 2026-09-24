@@ -1,0 +1,15 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:id="@+id/widget_action" android:layout_width="match_parent" android:layout_height="match_parent"
+    android:minWidth="48dp" android:minHeight="48dp" android:orientation="vertical" android:gravity="center"
+    android:paddingHorizontal="4dp" android:paddingVertical="1dp" android:background="@drawable/widget_background"
+    android:clickable="true" android:focusable="true" android:contentDescription="@string/widget_exercise_accessibility">
+    <ImageView android:layout_width="28dp" android:layout_height="28dp" android:src="@drawable/widget_exercise_icon"
+        android:scaleType="fitCenter" android:importantForAccessibility="no" />
+    <TextView android:id="@+id/widget_caption" android:layout_width="match_parent" android:layout_height="16dp"
+        android:layout_marginTop="1dp" android:gravity="center" android:text="@string/widget_exercise_detail"
+        android:textSize="11sp" android:autoSizeTextType="uniform" android:autoSizeMinTextSize="7sp"
+        android:autoSizeMaxTextSize="11sp" android:autoSizeStepGranularity="1sp"
+        android:textColor="@color/widget_text_secondary" android:includeFontPadding="false" android:maxLines="1"
+        android:singleLine="true" android:importantForAccessibility="no" />
+</LinearLayout>
