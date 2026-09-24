@@ -16,8 +16,8 @@ class MainActivity : ReactActivity(), HealthPermissionOwner {
   override fun onCreate(savedInstanceState: Bundle?) {
     // Widgets have their own private Activity; old development URLs are inert.
     intent.data = null
-    super.onCreate(savedInstanceState)
     healthPermissions = HealthPermissionHost(this)
+    super.onCreate(savedInstanceState)
   }
 
   override fun onNewIntent(intent: Intent) {
