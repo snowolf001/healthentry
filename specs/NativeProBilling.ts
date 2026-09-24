@@ -6,6 +6,7 @@ export interface Spec extends TurboModule {
   loadProducts(): Promise<string>;
   purchase(productId: string): Promise<string>;
   restore(): Promise<string>;
+  setDebugProOverride(active: boolean): Promise<string>;
 }
 
 export default TurboModuleRegistry.get<Spec>('ProBilling');
