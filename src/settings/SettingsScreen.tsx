@@ -275,7 +275,7 @@ export function SettingsScreen({
       )}
       <SettingsLink
         theme={theme}
-        label={`Coffee Widget · ${coffeeDefaultLabel(widgets.coffeeDefault)}`}
+        label={`Coffee · ${coffeeDefaultLabel(widgets.coffeeDefault)}`}
         accessibilityLabel={`Coffee Widget, ${coffeeDefaultLabel(
           widgets.coffeeDefault,
         )}`}
