@@ -4,13 +4,17 @@
     <string name="widget_water">Water</string>
     <string name="widget_coffee">Coffee</string>
     <string name="widget_weight">Weight</string>
+    <string name="widget_exercise">Exercise</string>
     <string name="widget_water_detail">8 oz</string>
     <string name="widget_coffee_detail">Coffee</string>
     <string name="widget_weight_detail">Enter</string>
+    <string name="widget_exercise_detail">5 min</string>
     <string name="widget_water_accessibility">Add 8 ounces of water with HealthEntry; permission may be requested</string>
     <string name="widget_coffee_accessibility">Choose coffee size or espresso shots with HealthEntry; permission may be requested</string>
     <string name="widget_weight_accessibility">Enter weight with HealthEntry; tap Add to save</string>
+    <string name="widget_exercise_accessibility">Add the configured exercise session with HealthEntry; permission may be requested</string>
     <string name="widget_water_name">HealthEntry Water</string>
     <string name="widget_coffee_name">HealthEntry Coffee</string>
     <string name="widget_weight_name">HealthEntry Weight</string>
+    <string name="widget_exercise_name">HealthEntry Exercise</string>
 </resources>
