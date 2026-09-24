@@ -327,7 +327,10 @@ function App() {
                     title="Trends"
                     theme={theme}
                     compact
-                    onPress={() => setScreen('trends')}
+                    onPress={() => {
+                      setOpenProFromSettings(false);
+                      setScreen('trends');
+                    }}
                     disabled={busy}
                     accessibilityLabel="Open Trends"
                   />
