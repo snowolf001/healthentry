@@ -1,5 +1,8 @@
 package com.cleanutilityapps.healthentry.widget
 
+import android.appwidget.AppWidgetManager
+import android.content.ComponentName
+import android.os.Build
 import android.widget.Toast
 import androidx.lifecycle.Lifecycle
 import com.cleanutilityapps.healthentry.NativeWidgetActionsSpec
@@ -9,6 +12,44 @@ import com.facebook.react.bridge.UiThreadUtil
 
 class WidgetActionsModule(context: ReactApplicationContext) : NativeWidgetActionsSpec(context) {
     override fun getName() = NAME
+    override fun loadWidgetDiscovery(promise: Promise) {
+        try {
+            val manager = AppWidgetManager.getInstance(reactApplicationContext)
+            val providers = listOf(
+                WaterWidgetProvider::class.java,
+                CoffeeWidgetProvider::class.java,
+                WeightWidgetProvider::class.java,
+                ExerciseWidgetProvider::class.java,
+            )
+            val hasWidget = providers.any { manager.getAppWidgetIds(ComponentName(reactApplicationContext, it)).isNotEmpty() }
+            val dismissed = WidgetPreferences.isDiscoveryDismissed(reactApplicationContext)
+            val pinSupported = Build.VERSION.SDK_INT >= 26 && manager.isRequestPinAppWidgetSupported
+            promise.resolve("{\"dismissed\":$dismissed,\"hasWidget\":$hasWidget,\"pinSupported\":$pinSupported}")
+        } catch (error: Exception) {
+            promise.reject("widget_discovery_load", "Could not load widget discovery state", error)
+        }
+    }
+    override fun dismissWidgetDiscovery(promise: Promise) {
+        try { WidgetPreferences.dismissDiscovery(reactApplicationContext); promise.resolve(null) }
+        catch (error: Exception) { promise.reject("widget_discovery_save", "Could not dismiss widget discovery", error) }
+    }
+    override fun requestPinWidget(widget: String, promise: Promise) {
+        try {
+            if (Build.VERSION.SDK_INT < 26) { promise.resolve(false); return }
+            val provider = when (widget) {
+                "water" -> WaterWidgetProvider::class.java
+                "coffee" -> CoffeeWidgetProvider::class.java
+                "weight" -> WeightWidgetProvider::class.java
+                "exercise" -> ExerciseWidgetProvider::class.java
+                else -> { promise.reject("widget_type", "Unknown widget type"); return }
+            }
+            val manager = AppWidgetManager.getInstance(reactApplicationContext)
+            if (!manager.isRequestPinAppWidgetSupported) { promise.resolve(false); return }
+            promise.resolve(manager.requestPinAppWidget(ComponentName(reactApplicationContext, provider), null, null))
+        } catch (error: Exception) {
+            promise.reject("widget_pin", "Could not request Home Screen widget", error)
+        }
+    }
     override fun loadPreferences(promise: Promise) {
         try { promise.resolve(WidgetPreferences.json(reactApplicationContext)) }
         catch (error: Exception) { promise.reject("preferences_load", "Could not load widget preferences", error) }
