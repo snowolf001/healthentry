@@ -25,6 +25,7 @@ import {
   defaultWidgetPreferences,
   recentQuickEntries,
   validateMoveMinutes,
+  validateWaterWidgetValue,
   widgetPreferences,
 } from './src/preferences/widgetPreferences';
 
@@ -117,10 +118,12 @@ function App() {
     [runEntry],
   );
   function addOtherWater() {
-    const value = parsePositiveDecimal(waterValue);
-    if (value === null) {
+    let value: number;
+    try {
+      value = validateWaterWidgetValue(waterValue);
+    } catch (error) {
       setFeedbackSection('water');
-      setFeedback('Enter a water amount greater than zero.');
+      setFeedback((error as Error).message);
       return;
     }
     return runEntry(
@@ -128,9 +131,11 @@ function App() {
       `✓ Added ${value} oz water`,
       'water',
       () => {
-        setRecentWaterOz(value);
         setWaterValue(String(value));
-        void recentQuickEntries.saveWaterOz(value).catch(logPreferenceFailure);
+        if (value !== 8 && value !== 12) {
+          setRecentWaterOz(value);
+          void recentQuickEntries.saveWaterOz(value).catch(logPreferenceFailure);
+        }
       },
     );
   }
@@ -175,7 +180,7 @@ function App() {
       'move',
     );
   }
-  function addOtherMove() {
+  async function addOtherMove() {
     let minutes: number;
     try {
       minutes = validateMoveMinutes(moveValue);
@@ -184,14 +189,24 @@ function App() {
       setFeedback((error as Error).message);
       return;
     }
+    let title = moveName || defaultWidgetPreferences.moveName;
+    try {
+      const preferences = await widgetPreferences.load();
+      title = preferences.moveName;
+      setMoveName(title);
+    } catch {
+      // Preference failure must not block a health entry.
+    }
     return runEntry(
-      () => systemHealth.addExercise({ minutes, title: moveName || defaultWidgetPreferences.moveName }),
-      `✓ Added ${moveName || defaultWidgetPreferences.moveName} · ${minutes} min`,
+      () => systemHealth.addExercise({ minutes, title }),
+      `✓ Added ${title} · ${minutes} min`,
       'move',
       () => {
-        setRecentMoveMinutes(minutes);
         setMoveValue(String(minutes));
-        void recentQuickEntries.saveMoveMinutes(minutes).catch(logPreferenceFailure);
+        if (minutes !== 5 && minutes !== 10) {
+          setRecentMoveMinutes(minutes);
+          void recentQuickEntries.saveMoveMinutes(minutes).catch(logPreferenceFailure);
+        }
       },
     );
   }
@@ -470,7 +485,7 @@ function EntryFeedback({ busy, feedback, theme, styles }: {
   busy: boolean;
   feedback: string;
   theme: ReturnType<typeof useAppTheme>;
-  styles: ReturnType<typeof createStyles>;
+  styles: { status: object; feedback: object; error: object };
 }) {
   return (
     <View style={styles.status}>
