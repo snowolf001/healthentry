@@ -2,7 +2,7 @@
 import { readFileSync } from 'fs';
 import { join } from 'path';
 
-test('manifest has precisely the four V1 health WRITE permissions and no reads', () => {
+test('manifest declares only the supported Trends read and entry write permissions', () => {
   const manifest = readFileSync(
     join(__dirname, '../android/app/src/main/AndroidManifest.xml'),
     'utf8',
@@ -14,7 +14,14 @@ test('manifest has precisely the four V1 health WRITE permissions and no reads',
     match => match[1],
   ).sort();
   expect(permissions).toEqual([
+    'android.permission.health.READ_BLOOD_PRESSURE',
+    'android.permission.health.READ_EXERCISE',
+    'android.permission.health.READ_HEALTH_DATA_HISTORY',
+    'android.permission.health.READ_HYDRATION',
+    'android.permission.health.READ_NUTRITION',
+    'android.permission.health.READ_WEIGHT',
     'android.permission.health.WRITE_BLOOD_PRESSURE',
+    'android.permission.health.WRITE_EXERCISE',
     'android.permission.health.WRITE_HYDRATION',
     'android.permission.health.WRITE_NUTRITION',
     'android.permission.health.WRITE_WEIGHT',

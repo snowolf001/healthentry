@@ -1,11 +1,12 @@
 <resources>
-    <color name="widget_background">#0D1512</color>
+    <color name="widget_background">#BD0D1512</color>
     <color name="widget_surface">#20332B</color>
     <color name="widget_text_primary">#F0F6F2</color>
-    <color name="widget_text_secondary">#B7C8BE</color>
-    <color name="widget_border">#3A5045</color>
+    <color name="widget_text_secondary">#FFFFFF</color>
+    <color name="widget_border">#803A5045</color>
     <color name="widget_ripple">#6672C6A2</color>
     <color name="widget_water_accent">#4FA3D9</color>
     <color name="widget_coffee_accent">#C8893F</color>
     <color name="widget_weight_accent">#58A985</color>
+    <color name="widget_exercise_accent">#B9A7FF</color>
 </resources>

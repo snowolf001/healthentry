@@ -1,0 +1,22 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:id="@+id/widget_action" android:layout_width="match_parent" android:layout_height="match_parent" android:gravity="center"
+    android:minWidth="48dp" android:minHeight="48dp" android:orientation="vertical"
+    android:paddingHorizontal="4dp" android:paddingVertical="1dp" android:background="@android:color/transparent"
+    android:clickable="true" android:focusable="true" android:contentDescription="@string/widget_exercise_accessibility">
+    <FrameLayout android:layout_width="48dp" android:layout_height="48dp" android:background="@drawable/widget_exercise_circle">
+        <ImageView android:layout_width="36dp" android:layout_height="36dp" android:layout_gravity="center" android:src="@drawable/widget_exercise_icon"
+        android:scaleType="fitCenter" android:importantForAccessibility="no" />
+    </FrameLayout>
+    <TextView android:id="@+id/widget_caption" android:layout_width="match_parent" android:layout_height="18dp"
+        android:layout_marginTop="2dp" android:text="@string/widget_exercise_detail"
+        android:textSize="10sp"
+        android:gravity="center"
+        android:textAlignment="center"
+        android:textColor="@color/widget_text_secondary"
+        android:shadowColor="#99000000"
+        android:shadowDx="0"
+        android:shadowDy="1"
+        android:shadowRadius="2" android:includeFontPadding="false" android:maxLines="1"
+        android:singleLine="true" android:importantForAccessibility="no" />
+</LinearLayout>

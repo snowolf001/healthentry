@@ -3,33 +3,43 @@ package com.cleanutilityapps.healthentry.widget
 import android.appwidget.AppWidgetManager
 import android.content.ComponentName
 import android.content.Context
+import android.net.Uri
 import org.json.JSONObject
 
-data class WidgetDefaults(val waterOz: Double = 8.0, val coffeeDefault: String = "ask")
+data class WidgetDefaults(val waterOz: Double = 8.0, val coffeeDefault: String = "ask", val moveMinutes: Int = 5, val moveName: String = "Exercise")
 
 object WidgetPreferences {
     private const val STORE = "widget_preferences"
     private const val WATER = "water_oz"
     private const val COFFEE = "coffee_default"
+    private const val MOVE_MINUTES = "move_minutes"
+    private const val MOVE_NAME = "move_name"
     val coffeeValues = setOf("ask", "coffee8", "coffee12", "coffee16", "espresso1", "espresso2", "espresso3")
 
     fun load(context: Context): WidgetDefaults {
         val preferences = context.getSharedPreferences(STORE, Context.MODE_PRIVATE)
         val water = preferences.getString(WATER, "8")?.toDoubleOrNull()?.takeIf { it.isFinite() && it in 1.0..99.0 } ?: 8.0
         val coffee = preferences.getString(COFFEE, "ask")?.takeIf { it in coffeeValues } ?: "ask"
-        return WidgetDefaults(water, coffee)
+        val moveMinutes = preferences.getInt(MOVE_MINUTES, 5).takeIf { it in 1..240 } ?: 5
+        val moveName = preferences.getString(MOVE_NAME, "Exercise")?.trim()?.takeIf { it.isNotEmpty() && it.length <= 60 } ?: "Exercise"
+        return WidgetDefaults(water, coffee, moveMinutes, moveName)
     }
 
-    fun save(context: Context, waterOz: Double, coffeeDefault: String) {
+    fun save(context: Context, waterOz: Double, coffeeDefault: String, moveMinutes: Double, moveName: String) {
         require(waterOz.isFinite() && waterOz in 1.0..99.0)
         require(coffeeDefault in coffeeValues)
+        require(moveMinutes.isFinite() && moveMinutes % 1.0 == 0.0 && moveMinutes in 1.0..240.0)
+        val cleanMoveName = moveName.trim()
+        require(cleanMoveName.isNotEmpty() && cleanMoveName.length <= 60)
         check(context.getSharedPreferences(STORE, Context.MODE_PRIVATE).edit()
-            .putString(WATER, waterOz.toString()).putString(COFFEE, coffeeDefault).commit())
+            .putString(WATER, waterOz.toString()).putString(COFFEE, coffeeDefault)
+            .putInt(MOVE_MINUTES, moveMinutes.toInt()).putString(MOVE_NAME, cleanMoveName).commit())
         refresh(context)
     }
 
     fun json(context: Context): String = load(context).let {
-        JSONObject().put("waterOz", it.waterOz).put("coffeeDefault", it.coffeeDefault).toString()
+        JSONObject().put("waterOz", it.waterOz).put("coffeeDefault", it.coffeeDefault)
+            .put("moveMinutes", it.moveMinutes).put("moveName", it.moveName).toString()
     }
 
     fun action(context: Context, widget: String): String? {
@@ -38,6 +48,7 @@ object WidgetPreferences {
             "water" -> "water:${format(value.waterOz)}"
             "coffee" -> "coffee:${value.coffeeDefault}"
             "weight" -> "weight"
+            "exercise" -> "exercise:${value.moveMinutes}:${Uri.encode(value.moveName)}"
             else -> null
         }
     }
@@ -52,11 +63,12 @@ object WidgetPreferences {
 
     fun refresh(context: Context) {
         val manager = AppWidgetManager.getInstance(context)
-        listOf(WaterWidgetProvider::class.java, CoffeeWidgetProvider::class.java).forEach { provider ->
+        listOf(WaterWidgetProvider::class.java, CoffeeWidgetProvider::class.java, ExerciseWidgetProvider::class.java).forEach { provider ->
             val ids = manager.getAppWidgetIds(ComponentName(context, provider))
             when (provider) {
                 WaterWidgetProvider::class.java -> WaterWidgetProvider().onUpdate(context, manager, ids)
                 CoffeeWidgetProvider::class.java -> CoffeeWidgetProvider().onUpdate(context, manager, ids)
+                ExerciseWidgetProvider::class.java -> ExerciseWidgetProvider().onUpdate(context, manager, ids)
             }
         }
     }

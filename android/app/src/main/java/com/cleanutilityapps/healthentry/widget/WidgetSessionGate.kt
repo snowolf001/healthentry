@@ -9,7 +9,8 @@ class WidgetSessionGate {
 
     @Synchronized fun open(action: String?, restored: Boolean, fromHistory: Boolean): String? {
         val valid = action == "weight" || action?.matches(Regex("water:(?:[1-9]\\d{0,2})(?:\\.\\d+)?")) == true ||
-            action?.matches(Regex("coffee:(?:ask|coffee(?:8|12|16)|espresso(?:1|2|3))")) == true
+            action?.matches(Regex("coffee:(?:ask|coffee(?:8|12|16)|espresso(?:1|2|3))")) == true ||
+            action?.matches(Regex("exercise:(?:[1-9]\\d?|1\\d{2}|2[0-3]\\d|240):.+")) == true
         if (restored || fromHistory || active != null || !valid) return null
         return UUID.randomUUID().toString().also { active = Session(it, action!!) }
     }

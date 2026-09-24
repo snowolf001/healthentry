@@ -3,6 +3,7 @@ import {
   ActivityIndicator,
   BackHandler,
   KeyboardAvoidingView,
+  Linking,
   ScrollView,
   StyleSheet,
   StatusBar,
@@ -15,10 +16,15 @@ import { systemHealth } from './src/systemHealth';
 import { validateBloodPressure, weightToKg } from './src/systemHealth/units';
 import { ActionButton } from './src/ui/ActionButton';
 import { useAppTheme } from './src/ui/theme';
-import { SettingsScreen, PrivacyScreen } from './src/settings/SettingsScreen';
+import { SettingsScreen } from './src/settings/SettingsScreen';
+import { TrendsScreen } from './src/trends/TrendsScreen';
 import { runHealthEntry, parsePositiveDecimal } from './src/home/entry';
 import { useWeightInput, weightEntry } from './src/home/weightInput';
 import { logPreferenceFailure } from './src/preferences/weightPreferences';
+import {
+  defaultWidgetPreferences,
+  widgetPreferences,
+} from './src/preferences/widgetPreferences';
 
 import { CaffeinePicker } from './src/home/CaffeinePicker';
 import { caffeineEntry, CaffeineKind } from './src/home/caffeine';
@@ -26,7 +32,7 @@ import { caffeineEntry, CaffeineKind } from './src/home/caffeine';
 function App() {
   const theme = useAppTheme();
   const styles = createStyles(theme);
-  const [screen, setScreen] = useState<'home' | 'settings' | 'privacy'>('home');
+  const [screen, setScreen] = useState<'home' | 'settings' | 'trends'>('home');
   const [feedback, setFeedback] = useState('');
   const [busy, setBusy] = useState(false);
   const [otherWater, setOtherWater] = useState(false);
@@ -42,7 +48,7 @@ function App() {
       if (screen === 'home') {
         return false;
       }
-      setScreen(screen === 'privacy' ? 'settings' : 'home');
+      setScreen('home');
       return true;
     });
     return () => listener.remove();
@@ -129,6 +135,20 @@ function App() {
       setFeedback((error as Error).message);
     }
   }
+  async function addMove() {
+    let { moveMinutes: minutes, moveName: title } = defaultWidgetPreferences;
+    try {
+      const preferences = await widgetPreferences.load();
+      minutes = preferences.moveMinutes;
+      title = preferences.moveName;
+    } catch {
+      // Preference failure must not block a health entry; use the documented default.
+    }
+    return runEntry(
+      () => systemHealth.addExercise({ minutes, title }),
+      `✓ Added ${title} · ${minutes} min`,
+    );
+  }
   function addBloodPressure() {
     if (!systolicValue.trim()) {
       setFeedback('Enter systolic pressure.');
@@ -165,11 +185,11 @@ function App() {
             ready={weight.ready}
             onUnit={weight.selectUnit}
             onBack={() => setScreen('home')}
-            onPrivacy={() => setScreen('privacy')}
+            onPrivacy={() => void Linking.openURL('https://cleanutilityapps.com/healthentry/privacy/')}
             theme={theme}
           />
-        ) : screen === 'privacy' ? (
-          <PrivacyScreen onBack={() => setScreen('settings')} theme={theme} />
+         ) : screen === 'trends' ? (
+          <TrendsScreen onBack={() => setScreen('home')} theme={theme} weightUnit={weight.unit} />
         ) : (
           <KeyboardAvoidingView style={styles.container} behavior="padding">
             <ScrollView
@@ -178,38 +198,51 @@ function App() {
             >
               <View style={styles.header}>
                 <Text accessibilityRole="header" style={styles.title}>
-                  HealthEntry
+                  Health Entry
                 </Text>
-                <ActionButton
-                  title="⚙"
-                  theme={theme}
-                  compact
-                  onPress={() => setScreen('settings')}
-                  disabled={busy}
-                  accessibilityLabel="Open Settings"
-                />
-              </View>
-              <View style={styles.status}>
-                {busy && (
-                  <ActivityIndicator
-                    color={theme.accent}
-                    accessibilityLabel="Writing entry"
+                <View style={styles.headerActions}>
+                  <ActionButton
+                    title="Trends"
+                    theme={theme}
+                    compact
+                    onPress={() => setScreen('trends')}
+                    disabled={busy}
+                    accessibilityLabel="Open Trends"
                   />
-                )}
-                <Text
-                  accessibilityLiveRegion="polite"
-                  selectable
-                  style={[
-                    styles.feedback,
-                    !!feedback &&
-                      !busy &&
-                      !feedback.startsWith('✓') &&
-                      styles.error,
-                  ]}
-                >
-                  {feedback || 'Quick entries. Your system health data.'}
-                </Text>
+                  <ActionButton
+                    title="⚙"
+                    theme={theme}
+                    compact
+                    onPress={() => setScreen('settings')}
+                    disabled={busy}
+                    accessibilityLabel="Open Settings"
+                  />
+                </View>
               </View>
+              {(busy || feedback) && (
+                <View style={styles.status}>
+                  {busy && (
+                    <ActivityIndicator
+                      color={theme.accent}
+                      accessibilityLabel="Writing entry"
+                    />
+                  )}
+                  {!!feedback && (
+                    <Text
+                      accessibilityLiveRegion="polite"
+                      selectable
+                      style={[
+                        styles.feedback,
+                        !busy &&
+                          !feedback.startsWith('✓') &&
+                          styles.error,
+                      ]}
+                    >
+                      {feedback}
+                    </Text>
+                  )}
+                </View>
+              )}
               <View style={styles.section}>
                 <Text accessibilityRole="header" style={styles.label}>
                   WATER
@@ -332,6 +365,24 @@ function App() {
               </View>
               <View style={styles.section}>
                 <Text accessibilityRole="header" style={styles.label}>
+                  MOVE
+                </Text>
+                <View style={styles.row}>
+                  <ActionButton
+                    title="+ Exercise"
+                    theme={theme}
+                    primary
+                    accessibilityLabel="Add exercise"
+                    onPress={addMove}
+                    disabled={busy}
+                  />
+                  <Text style={styles.hint}>
+                    Uses the duration set in Settings (default 5 min).
+                  </Text>
+                </View>
+              </View>
+              <View style={styles.section}>
+                <Text accessibilityRole="header" style={styles.label}>
                   BLOOD PRESSURE
                 </Text>
                 <View style={styles.bloodPressureRow}>
@@ -397,6 +448,7 @@ const createStyles = (theme: ReturnType<typeof useAppTheme>) =>
       flexWrap: 'wrap',
       gap: 12,
     },
+    headerActions: { flexDirection: 'row', alignItems: 'center', gap: 8 },
     title: {
       fontSize: 30,
       fontWeight: '700',

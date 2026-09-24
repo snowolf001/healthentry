@@ -2,10 +2,12 @@ import nativeHealthPermissions from '../../specs/NativeHealthPermissions';
 import {
   BloodPressureBodyPosition,
   BloodPressureMeasurementLocation,
+  ExerciseType,
   getGrantedPermissions,
   getSdkStatus,
   initialize,
   insertRecords,
+  readRecords,
   MealType,
   openHealthConnectSettings,
   RecordingMethod,
@@ -20,6 +22,9 @@ import type {
   CaffeineInput,
   WeightInput,
   BloodPressureInput,
+  ExerciseInput,
+  TrendData,
+  TrendRangeDays,
 } from './types';
 import {
   validateBloodPressure,
@@ -75,6 +80,7 @@ const recordTypes = {
   caffeine: 'Nutrition',
   weight: 'Weight',
   bloodPressure: 'BloodPressure',
+  exercise: 'ExerciseSession',
 } as const;
 
 async function authorize(
@@ -180,6 +186,167 @@ async function addBloodPressure(input: BloodPressureInput) {
   }));
 }
 
+async function addExercise(input: ExerciseInput) {
+  const minutes = input.minutes;
+  const title = input.title.trim();
+  if (!Number.isInteger(minutes) || minutes < 1 || minutes > 240) {
+    throw new Error('Enter an exercise duration between 1 and 240 minutes.');
+  }
+  if (!title || title.length > 60) {
+    throw new Error('Enter an exercise name between 1 and 60 characters.');
+  }
+  return writeOne('exercise', now => ({
+    recordType: 'ExerciseSession',
+    startTime: new Date(now - minutes * 60_000).toISOString(),
+    endTime: new Date(now).toISOString(),
+    exerciseType: ExerciseType.OTHER_WORKOUT,
+    title,
+    metadata: manualMetadata(),
+  }));
+}
+
+function numericValue(value: unknown, resultKey?: string): number {
+  if (!value || typeof value !== 'object') return 0;
+  const result = value as Record<string, unknown>;
+  if (typeof result.value === 'number') return result.value;
+  if (resultKey && typeof result[resultKey] === 'number') {
+    return result[resultKey] as number;
+  }
+  return 0;
+}
+
+function localDateKey(value: string | number | Date): string {
+  const date = new Date(value);
+  const year = date.getFullYear();
+  const month = String(date.getMonth() + 1).padStart(2, '0');
+  const day = String(date.getDate()).padStart(2, '0');
+  return `${year}-${month}-${day}`;
+}
+
+async function readTrends(days: TrendRangeDays): Promise<TrendData> {
+  await prepare();
+  if (![7, 30, 90].includes(days)) {
+    throw new Error('Trend range must be 7, 30, or 90 days.');
+  }
+  const recordTypeList = [
+    'Hydration',
+    'Nutrition',
+    'Weight',
+    'BloodPressure',
+    'ExerciseSession',
+  ] as const;
+  if (days === 90) {
+    if (!nativeHealthPermissions) {
+      throw new Error('History permission request unavailable. Reopen HealthEntry.');
+    }
+    const available = await nativeHealthPermissions.isHistoryReadAvailable();
+    if (!available) {
+      throw new Error(
+        '90-day Trends require Health Connect history access, which is unavailable on this device. Update Health Connect or use 30D.',
+      );
+    }
+    const historyGranted =
+      await nativeHealthPermissions.requestHistoryReadPermission();
+    if (!historyGranted) {
+      throw new Error(
+        '90-day Trends require history access. Grant HealthEntry permission to read health data older than 30 days, or use 30D.',
+      );
+    }
+  }
+  const granted = await getGrantedPermissions();
+  const hasRead = (recordType: string) =>
+    granted.some(
+      permission =>
+        permission.accessType === 'read' && permission.recordType === recordType,
+    );
+  const missing = recordTypeList.filter(recordType => !hasRead(recordType));
+  if (missing.length) {
+    if (!nativeHealthPermissions) {
+      throw new Error('Health data permission request unavailable. Reopen HealthEntry.');
+    }
+    const allowed = await nativeHealthPermissions.requestReadPermissions([...missing]);
+    if (!allowed) {
+      throw new Error(
+        'Health data read access was not granted. Enable HealthEntry read access in Health Connect to view Trends.',
+      );
+    }
+  }
+
+  const end = new Date();
+  const start = new Date();
+  start.setHours(0, 0, 0, 0);
+  start.setDate(start.getDate() - (days - 1));
+  const timeRangeFilter = {
+    operator: 'between' as const,
+    startTime: start.toISOString(),
+    endTime: end.toISOString(),
+  };
+  const read = async (recordType: string) =>
+    (await readRecords(recordType as never, { timeRangeFilter } as never))
+      .records as unknown as Record<string, unknown>[];
+
+  // Read sequentially. Some Health Connect providers/devices are less stable when
+  // several binder reads are started at exactly the same time after permission UI.
+  const hydration = await read('Hydration');
+  const nutrition = await read('Nutrition');
+  const weights = await read('Weight');
+  const pressures = await read('BloodPressure');
+  const exercises = await read('ExerciseSession');
+
+  const daily = Array.from({ length: days }, (_, index) => {
+    const date = new Date(start);
+    date.setDate(start.getDate() + index);
+    return {
+      date: localDateKey(date),
+      waterMl: 0,
+      caffeineMg: 0,
+      exerciseCount: 0,
+      exerciseMinutes: 0,
+    };
+  });
+  const byDate = new Map(daily.map(day => [day.date, day]));
+
+  hydration.forEach(record => {
+    const day = byDate.get(localDateKey(String(record.endTime)));
+    if (day) day.waterMl += numericValue(record.volume, 'inMilliliters');
+  });
+  nutrition.forEach(record => {
+    const day = byDate.get(localDateKey(String(record.endTime)));
+    if (day) day.caffeineMg += numericValue(record.caffeine, 'inMilligrams');
+  });
+  exercises.forEach(record => {
+    const startTime = new Date(String(record.startTime));
+    const endTime = new Date(String(record.endTime));
+    const day = byDate.get(localDateKey(endTime));
+    if (day) {
+      day.exerciseCount += 1;
+      day.exerciseMinutes += Math.max(
+        0,
+        Math.round((endTime.getTime() - startTime.getTime()) / 60_000),
+      );
+    }
+  });
+
+  return {
+    daily,
+    weights: weights
+      .map(record => ({
+        time: String(record.time),
+        kilograms: numericValue(record.weight, 'inKilograms'),
+      }))
+      .filter(record => record.kilograms > 0)
+      .sort((a, b) => a.time.localeCompare(b.time)),
+    bloodPressures: pressures
+      .map(record => ({
+        time: String(record.time),
+        systolic: numericValue(record.systolic, 'inMillimetersOfMercury'),
+        diastolic: numericValue(record.diastolic, 'inMillimetersOfMercury'),
+      }))
+      .filter(record => record.systolic > 0 && record.diastolic > 0)
+      .sort((a, b) => a.time.localeCompare(b.time)),
+  };
+}
+
 export const androidSystemHealth: SystemHealth = {
   async openSettings() {
     const availability = await getAvailability();
@@ -195,4 +362,6 @@ export const androidSystemHealth: SystemHealth = {
   addCaffeine,
   addWeight,
   addBloodPressure,
+  addExercise,
+  readTrends,
 };

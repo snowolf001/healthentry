@@ -2,6 +2,8 @@ import NativeWidget from '../specs/NativeWidgetActions';
 import {
   coffeeDefaultLabel,
   parseWidgetPreferences,
+  validateMoveMinutes,
+  validateMoveName,
   validateWaterWidgetValue,
   widgetPreferences,
 } from '../src/preferences/widgetPreferences';
@@ -17,15 +19,36 @@ test('defaults malformed or missing native values safely', () => {
   expect(parseWidgetPreferences('{}')).toEqual({
     waterOz: 8,
     coffeeDefault: 'ask',
+    moveMinutes: 5,
+    moveName: 'Exercise',
   });
   expect(parseWidgetPreferences('bad')).toEqual({
     waterOz: 8,
     coffeeDefault: 'ask',
+    moveMinutes: 5,
+    moveName: 'Exercise',
   });
   expect(
     parseWidgetPreferences('{"waterOz":100,"coffeeDefault":"bad"}'),
-  ).toEqual({ waterOz: 8, coffeeDefault: 'ask' });
+  ).toEqual({
+    waterOz: 8,
+    coffeeDefault: 'ask',
+    moveMinutes: 5,
+    moveName: 'Exercise',
+  });
 });
+test('validates move names', () => {
+  expect(validateMoveName(' Fitness room ')).toBe('Fitness room');
+  expect(() => validateMoveName('   ')).toThrow('1 and 60');
+});
+test.each(['1', '5', '15', '240'])(
+  'accepts move duration %s minutes',
+  value => expect(validateMoveMinutes(value)).toBe(Number(value)),
+);
+test.each(['', '0', '1.5', '241', 'abc'])(
+  'rejects invalid move duration %s',
+  value => expect(() => validateMoveMinutes(value)).toThrow('1 and 240'),
+);
 test.each(['1', '8', '12', '16', '20', '24', '32.5', '99'])(
   'accepts reasonable custom water %s oz',
   value => expect(validateWaterWidgetValue(value)).toBe(Number(value)),
@@ -49,12 +72,26 @@ test.each([
 test('native store is the single load/save boundary', async () => {
   jest
     .mocked(NativeWidget!.loadPreferences)
-    .mockResolvedValue('{"waterOz":20,"coffeeDefault":"espresso2"}');
+    .mockResolvedValue(
+      '{"waterOz":20,"coffeeDefault":"espresso2","moveMinutes":10,"moveName":"Stretching"}',
+    );
   expect(await widgetPreferences.load()).toEqual({
     waterOz: 20,
     coffeeDefault: 'espresso2',
+    moveMinutes: 10,
+    moveName: 'Stretching',
   });
   jest.mocked(NativeWidget!.savePreferences).mockResolvedValue();
-  await widgetPreferences.save({ waterOz: 24, coffeeDefault: 'coffee12' });
-  expect(NativeWidget!.savePreferences).toHaveBeenCalledWith(24, 'coffee12');
+  await widgetPreferences.save({
+    waterOz: 24,
+    coffeeDefault: 'coffee12',
+    moveMinutes: 7,
+    moveName: 'Walking',
+  });
+  expect(NativeWidget!.savePreferences).toHaveBeenCalledWith(
+    24,
+    'coffee12',
+    7,
+    'Walking',
+  );
 });

@@ -80,4 +80,7 @@ test('unimplemented platform cannot acknowledge writes', async () => {
   await expect(
     unsupportedSystemHealth.addBloodPressure({ systolic: 120, diastolic: 80 }),
   ).rejects.toMatchObject({ code: 'unsupported' });
+  await expect(
+    unsupportedSystemHealth.addExercise({ minutes: 5, title: 'Exercise' }),
+  ).rejects.toMatchObject({ code: 'unsupported' });
 });

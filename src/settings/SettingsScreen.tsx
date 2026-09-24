@@ -1,6 +1,8 @@
 import { useEffect, useMemo, useState } from 'react';
 import {
   AppState,
+  KeyboardAvoidingView,
+  Platform,
   Pressable,
   ScrollView,
   StyleSheet,
@@ -18,6 +20,8 @@ import {
   coffeeDefaults,
   defaultWidgetPreferences,
   validateWaterWidgetValue,
+  validateMoveMinutes,
+  validateMoveName,
   waterPresets,
   widgetPreferences,
   type WidgetPreferences,
@@ -52,6 +56,9 @@ export function SettingsScreen({
     null,
   );
   const [customWater, setCustomWater] = useState('');
+  const [customWaterOpen, setCustomWaterOpen] = useState(false);
+  const [moveMinutes, setMoveMinutes] = useState('5');
+  const [moveName, setMoveName] = useState('Exercise');
   const [widgetError, setWidgetError] = useState('');
   useEffect(() => {
     let active = true;
@@ -91,6 +98,8 @@ export function SettingsScreen({
       .then(value => {
         if (active) {
           setWidgets(value);
+          setMoveMinutes(String(value.moveMinutes));
+          setMoveName(value.moveName);
           setWidgetReady(true);
         }
       })
@@ -106,6 +115,7 @@ export function SettingsScreen({
       setWidgets(next);
       setWidgetEditor(null);
       setCustomWater('');
+      setCustomWaterOpen(false);
     } catch {
       setWidgetError('Could not save widget defaults.');
     }
@@ -116,6 +126,15 @@ export function SettingsScreen({
         ...widgets,
         waterOz: validateWaterWidgetValue(customWater),
       });
+    } catch (reason) {
+      setWidgetError((reason as Error).message);
+    }
+  }
+  function saveMove() {
+    try {
+      const minutes = validateMoveMinutes(moveMinutes);
+      const name = validateMoveName(moveName);
+      return saveWidgets({ ...widgets, moveMinutes: minutes, moveName: name });
     } catch (reason) {
       setWidgetError((reason as Error).message);
     }
@@ -136,7 +155,15 @@ export function SettingsScreen({
     }
   }
   return (
-    <ScrollView contentContainerStyle={styles.content}>
+    <KeyboardAvoidingView
+      style={styles.screen}
+      behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+    >
+    <ScrollView
+      contentContainerStyle={styles.content}
+      keyboardShouldPersistTaps="handled"
+      automaticallyAdjustKeyboardInsets
+    >
       <View style={styles.header}>
         <ActionButton
           theme={theme}
@@ -200,9 +227,12 @@ export function SettingsScreen({
                 widgets.waterOz as (typeof waterPresets)[number],
               )
             }
-            onPress={() => setCustomWater(String(widgets.waterOz))}
+            onPress={() => {
+              setCustomWaterOpen(true);
+              setCustomWater(String(widgets.waterOz));
+            }}
           />
-          {!!customWater && (
+          {customWaterOpen && (
             <View style={styles.customRow}>
               <TextInput
                 accessibilityLabel="Custom water widget amount in ounces"
@@ -249,51 +279,94 @@ export function SettingsScreen({
               key={value}
               theme={theme}
               title={coffeeDefaultLabel(value)}
+              compact
               selected={widgets.coffeeDefault === value}
               onPress={() => saveWidgets({ ...widgets, coffeeDefault: value })}
             />
           ))}
         </View>
       )}
+      <Text style={styles.sectionLabel}>MOVE</Text>
+      <Text style={styles.fieldLabel}>Default duration</Text>
+        <View style={styles.durationRow}>
+          <TextInput
+            accessibilityLabel="Default move duration in minutes"
+            keyboardType="number-pad"
+            value={moveMinutes}
+            onChangeText={text => setMoveMinutes(text.replace(/[^0-9]/g, ''))}
+            style={[
+              styles.durationInput,
+              {
+                borderColor: theme.border,
+                color: theme.textPrimary,
+                backgroundColor: theme.inputBackground,
+              },
+            ]}
+            editable={widgetReady}
+          />
+          <Text style={styles.statusText}>min</Text>
+          <ActionButton
+            theme={theme}
+            title="Save"
+            compact
+            onPress={saveMove}
+            disabled={!widgetReady}
+          />
+        </View>
+      <Text style={styles.fieldLabel}>Exercise name</Text>
+        <View style={styles.moveNameRow}>
+          <TextInput
+            accessibilityLabel="Exercise name"
+            value={moveName}
+            onChangeText={setMoveName}
+            maxLength={60}
+            placeholder="Exercise"
+            placeholderTextColor={theme.textSecondary}
+            style={[
+              styles.moveNameInput,
+              {
+                borderColor: theme.border,
+                color: theme.textPrimary,
+                backgroundColor: theme.inputBackground,
+              },
+            ]}
+            editable={widgetReady}
+          />
+          <ActionButton
+            theme={theme}
+            title="Save"
+            compact
+            onPress={saveMove}
+            disabled={!widgetReady}
+          />
+        </View>
       {!!widgetError && (
         <Text accessibilityLiveRegion="polite" style={styles.error}>
           {widgetError}
         </Text>
       )}
       <Text style={styles.sectionLabel}>HEALTH CONNECT</Text>
-      <View style={styles.settingsRow}>
-        <Text style={styles.rowTitle}>Health Connect</Text>
-        <Text accessibilityLiveRegion="polite" style={styles.statusText}>
-          {availability?.status === 'available'
-            ? 'Available'
-            : availability
-            ? availability.message
-            : error
-            ? 'Status unavailable'
-            : 'Checking…'}
-        </Text>
-      </View>
       <SettingsLink
         theme={theme}
-        label={opening ? 'Opening…' : 'Manage access'}
+        label={opening ? 'Opening…' : 'Manage Health Connect'}
         accessibilityLabel="Manage Health Connect access"
         disabled={opening || availability?.status !== 'available'}
         onPress={openSettings}
       />
+      {availability && availability.status !== 'available' && (
+        <Text accessibilityLiveRegion="polite" style={styles.statusText}>
+          {availability.message}
+        </Text>
+      )}
       {!!error && (
         <Text accessibilityLiveRegion="polite" style={styles.error}>
           {error}
         </Text>
       )}
-      <Text style={styles.sectionLabel}>ABOUT</Text>
-      <Text style={styles.appName}>HealthEntry</Text>
-      <Text style={styles.body}>
-        Quickly add water, caffeine, weight, and blood pressure to your system
-        health data.
-      </Text>
       <SettingsLink theme={theme} label="Privacy Policy" onPress={onPrivacy} />
       <Text style={styles.version}>Version {packageInfo.version}</Text>
     </ScrollView>
+    </KeyboardAvoidingView>
   );
 }
 
@@ -355,8 +428,9 @@ export function PrivacyScreen({
         </Text>
       </View>
       <Text style={styles.body}>
-        HealthEntry writes water, caffeine, weight, and blood pressure to your
-        system health data. It does not read or keep a health history.
+        Health Entry writes water, caffeine, weight, blood pressure, and exercise
+        sessions to your system health data. Trends reads those health data types
+        directly from Health Connect. Health Entry does not keep a second health history.
       </Text>
       <Text style={styles.body}>
         Only input preferences, widget defaults, and the last successfully
@@ -376,6 +450,7 @@ export function PrivacyScreen({
 
 const createStyles = (theme: Theme) =>
   StyleSheet.create({
+    screen: { flex: 1, backgroundColor: theme.background },
     content: {
       padding: 20,
       paddingBottom: 32,
@@ -409,6 +484,26 @@ const createStyles = (theme: Theme) =>
     },
     segment: { flexDirection: 'row', gap: 6 },
     choiceGrid: { flexDirection: 'row', flexWrap: 'wrap', gap: 8 },
+    durationRow: { flexDirection: 'row', alignItems: 'center', gap: 8 },
+    fieldLabel: { fontSize: 17, color: theme.textPrimary, marginTop: 2 },
+    moveNameRow: { flexDirection: 'row', alignItems: 'center', gap: 8 },
+    moveNameInput: {
+      flex: 1,
+      minHeight: 48,
+      borderWidth: 1,
+      borderRadius: 8,
+      padding: 10,
+      fontSize: 17,
+    },
+    durationInput: {
+      width: 96,
+      minHeight: 48,
+      borderWidth: 1,
+      borderRadius: 8,
+      padding: 10,
+      fontSize: 18,
+      textAlign: 'center',
+    },
     customRow: {
       width: '100%',
       flexDirection: 'row',

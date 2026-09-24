@@ -23,7 +23,8 @@ abstract class EntryWidgetProvider(private val layout: Int, private val action: 
             val views = RemoteViews(context.packageName, layout)
             val defaults = WidgetPreferences.load(context)
             val caption = if (action == "water") WidgetPreferences.waterCaption(defaults.waterOz)
-                else if (action == "coffee") WidgetPreferences.coffeeCaption(defaults.coffeeDefault) else null
+                else if (action == "coffee") WidgetPreferences.coffeeCaption(defaults.coffeeDefault)
+                else if (action == "exercise") "${defaults.moveMinutes} min" else null
             if (caption != null) views.setTextViewText(R.id.widget_caption, caption)
             views.setOnClickPendingIntent(R.id.widget_action, pending)
             manager.updateAppWidget(id, views)
@@ -33,3 +34,4 @@ abstract class EntryWidgetProvider(private val layout: Int, private val action: 
 class WaterWidgetProvider : EntryWidgetProvider(R.layout.water_widget, "water")
 class CoffeeWidgetProvider : EntryWidgetProvider(R.layout.coffee_widget, "coffee")
 class WeightWidgetProvider : EntryWidgetProvider(R.layout.weight_widget, "weight")
+class ExerciseWidgetProvider : EntryWidgetProvider(R.layout.exercise_widget, "exercise")
