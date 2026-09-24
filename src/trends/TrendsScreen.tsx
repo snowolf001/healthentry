@@ -142,7 +142,7 @@ export function TrendsScreen({ onBack, theme, weightUnit, startInPaywall = false
         </>
       ) : null}
       <Text style={styles.footnote}>
-        Trends are read directly from Health Connect. HealthEntry does not keep a second health history.
+        Trends are read directly from Health Connect. Health Entry does not keep a second health history.
       </Text>
     </ScrollView>
   );
@@ -159,7 +159,7 @@ function ProPaywall({ theme, pro, onState, onBack }: { theme: Theme; pro: ProSta
     try {
       const loaded = await loadProProducts();
       setProducts(loaded);
-      if (!loaded.length) setMessage('Plans are unavailable. Install HealthEntry from a Google Play test or production track, then try again.');
+      if (!loaded.length) setMessage('Plans are unavailable. Install Health Entry from a Google Play test or production track, then try again.');
     } catch (error) { setMessage(error instanceof Error ? error.message : String(error)); }
     finally { setLoadingPlans(false); }
   }, []);
@@ -171,20 +171,20 @@ function ProPaywall({ theme, pro, onState, onBack }: { theme: Theme; pro: ProSta
   }
   async function restore() {
     setBusy(true); setMessage('');
-    try { const state = await restorePro(); onState(state); if (!state.isPro) setMessage('No active HealthEntry Pro subscription was found.'); }
+    try { const state = await restorePro(); onState(state); if (!state.isPro) setMessage('No active Health Entry Pro subscription was found.'); }
     catch (error) { setMessage(error instanceof Error ? error.message : String(error)); }
     finally { setBusy(false); }
   }
   return (
     <ScrollView contentContainerStyle={styles.content}>
-      <View style={styles.header}><ActionButton theme={theme} title="‹" compact onPress={onBack} accessibilityLabel="Back from HealthEntry Pro" /><Text style={styles.title}>HealthEntry Pro</Text></View>
+      <View style={styles.header}><ActionButton theme={theme} title="‹" compact onPress={onBack} accessibilityLabel="Back from Health Entry Pro" /><Text style={styles.title}>Health Entry Pro</Text></View>
       <Text style={styles.proHeadline}>See more. Log faster.</Text>
       <View style={styles.proBenefits}>
         <Text style={styles.proBenefit}>✓ 7, 30 & 90-day health trends</Text>
         <Text style={styles.proBenefit}>✓ Keep all 4 Home Screen widgets</Text>
       </View>
       <Text style={styles.secondary}>
-        {!pro.widgetTrialStarted ? 'Widgets are free for 14 days starting with your first widget use.' : !pro.isPro ? `${pro.widgetTrialDaysRemaining} days left in your widget trial.` : 'HealthEntry Pro is active.'}
+        {!pro.widgetTrialStarted ? 'Widgets are free for 14 days starting with your first widget use.' : !pro.isPro ? `${pro.widgetTrialDaysRemaining} days left in your widget trial.` : 'Health Entry Pro is active.'}
       </Text>
       {products.map(product => {
         const yearly = product.productId.endsWith('yearly');
