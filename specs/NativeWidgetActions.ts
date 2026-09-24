@@ -2,6 +2,9 @@ import type { TurboModule } from 'react-native';
 import { TurboModuleRegistry } from 'react-native';
 export interface Spec extends TurboModule {
   loadPreferences(): Promise<string>;
+  loadWidgetDiscovery(): Promise<string>;
+  dismissWidgetDiscovery(): Promise<void>;
+  requestPinWidget(widget: string): Promise<boolean>;
   loadRecentQuickEntries(): Promise<string>;
   saveRecentWaterOz(value: number): Promise<void>;
   saveRecentMoveMinutes(value: number): Promise<void>;
