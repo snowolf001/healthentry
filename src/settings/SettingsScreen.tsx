@@ -13,6 +13,7 @@ import { systemHealth } from '../systemHealth';
 import type { Availability, WeightUnit } from '../systemHealth/types';
 import { ActionButton } from '../ui/ActionButton';
 import type { Theme } from '../ui/theme';
+import { getProState, type ProState } from '../pro/pro';
 import {
   coffeeDefaultLabel,
   coffeeDefaults,
@@ -31,6 +32,7 @@ type Props = {
   onUnit: (unit: WeightUnit) => void;
   onBack: () => void;
   onPrivacy: () => void;
+  onPro: () => void;
   theme: Theme;
 };
 
@@ -40,12 +42,14 @@ export function SettingsScreen({
   onUnit,
   onBack,
   onPrivacy,
+  onPro,
   theme,
 }: Props) {
   const styles = useMemo(() => createStyles(theme), [theme]);
   const [availability, setAvailability] = useState<Availability | null>(null);
   const [error, setError] = useState('');
   const [opening, setOpening] = useState(false);
+  const [pro, setPro] = useState<ProState | null>(null);
   const [widgets, setWidgets] = useState<WidgetPreferences>(
     defaultWidgetPreferences,
   );
@@ -59,6 +63,13 @@ export function SettingsScreen({
   const [moveName, setMoveName] = useState('Exercise');
   const [widgetError, setWidgetError] = useState('');
   const scrollRef = useRef<ScrollView>(null);
+  useEffect(() => {
+    void getProState().then(setPro);
+    const subscription = AppState.addEventListener('change', state => {
+      if (state === 'active') void getProState().then(setPro);
+    });
+    return () => subscription.remove();
+  }, []);
   useEffect(() => {
     let active = true;
     let revision = 0;
@@ -172,6 +183,13 @@ export function SettingsScreen({
           Settings
         </Text>
       </View>
+      <Text style={styles.sectionLabel}>PRO</Text>
+      <SettingsLink
+        theme={theme}
+        label={pro?.isPro ? 'HealthEntry Pro · Active' : 'HealthEntry Pro'}
+        accessibilityLabel="HealthEntry Pro"
+        onPress={onPro}
+      />
       <Text style={styles.sectionLabel}>UNITS</Text>
       <View style={styles.settingsRow}>
         <Text style={styles.rowTitle}>Weight</Text>
