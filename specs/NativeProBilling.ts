@@ -3,6 +3,7 @@ import { TurboModuleRegistry } from 'react-native';
 
 export interface Spec extends TurboModule {
   getState(): Promise<string>;
+  isDebugBuild(): Promise<boolean>;
   loadProducts(): Promise<string>;
   purchase(productId: string): Promise<string>;
   restore(): Promise<string>;
