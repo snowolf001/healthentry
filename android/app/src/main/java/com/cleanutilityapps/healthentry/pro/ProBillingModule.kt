@@ -14,6 +14,10 @@ class ProBillingModule(context: ReactApplicationContext) : NativeProBillingSpec(
 
     override fun getName() = NAME
 
+    override fun isDebugBuild(promise: Promise) {
+        promise.resolve(com.cleanutilityapps.healthentry.BuildConfig.DEBUG)
+    }
+
     private fun billing(): BillingClient {
         client?.let { return it }
         return BillingClient.newBuilder(reactApplicationContext)
