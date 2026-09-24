@@ -111,3 +111,35 @@ export const widgetPreferences = {
     );
   },
 };
+
+export type RecentQuickEntries = { waterOz: number; moveMinutes: number };
+export const defaultRecentQuickEntries: RecentQuickEntries = { waterOz: 16, moveMinutes: 30 };
+
+export const recentQuickEntries = {
+  async load(): Promise<RecentQuickEntries> {
+    try {
+      const input = JSON.parse(await bridge().loadRecentQuickEntries()) as Partial<RecentQuickEntries>;
+      return {
+        waterOz:
+          typeof input.waterOz === 'number' && input.waterOz >= 1 && input.waterOz <= 99
+            ? input.waterOz
+            : defaultRecentQuickEntries.waterOz,
+        moveMinutes:
+          typeof input.moveMinutes === 'number' &&
+          Number.isInteger(input.moveMinutes) &&
+          input.moveMinutes >= 1 &&
+          input.moveMinutes <= 240
+            ? input.moveMinutes
+            : defaultRecentQuickEntries.moveMinutes,
+      };
+    } catch {
+      return { ...defaultRecentQuickEntries };
+    }
+  },
+  saveWaterOz(value: number) {
+    return bridge().saveRecentWaterOz(value);
+  },
+  saveMoveMinutes(value: number) {
+    return bridge().saveRecentMoveMinutes(value);
+  },
+};
