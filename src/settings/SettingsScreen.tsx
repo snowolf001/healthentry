@@ -213,8 +213,8 @@ export function SettingsScreen({
       <Text style={styles.sectionLabel}>WIDGETS</Text>
       <SettingsLink
         theme={theme}
-        label={`Water Widget Default · ${widgets.waterOz} oz`}
-        accessibilityLabel={`Water Widget Default, ${widgets.waterOz} oz`}
+        label={`Water Widget · ${widgets.waterOz} oz`}
+        accessibilityLabel={`Water Widget, ${widgets.waterOz} oz`}
         disabled={!widgetReady}
         onPress={() =>
           setWidgetEditor(widgetEditor === 'water' ? null : 'water')
@@ -275,9 +275,7 @@ export function SettingsScreen({
       )}
       <SettingsLink
         theme={theme}
-        label={`Coffee Widget Default · ${coffeeDefaultLabel(
-          widgets.coffeeDefault,
-        )}`}
+        label={`Coffee Widget · ${coffeeDefaultLabel(widgets.coffeeDefault)}`}
         accessibilityLabel={`Coffee Widget, ${coffeeDefaultLabel(
           widgets.coffeeDefault,
         )}`}
