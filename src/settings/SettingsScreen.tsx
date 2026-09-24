@@ -54,6 +54,7 @@ export function SettingsScreen({
     null,
   );
   const [customWater, setCustomWater] = useState('');
+  const [customWaterOpen, setCustomWaterOpen] = useState(false);
   const [moveMinutes, setMoveMinutes] = useState('5');
   const [moveName, setMoveName] = useState('Exercise');
   const [widgetError, setWidgetError] = useState('');
@@ -112,6 +113,7 @@ export function SettingsScreen({
       setWidgets(next);
       setWidgetEditor(null);
       setCustomWater('');
+      setCustomWaterOpen(false);
     } catch {
       setWidgetError('Could not save widget defaults.');
     }
@@ -215,9 +217,12 @@ export function SettingsScreen({
                 widgets.waterOz as (typeof waterPresets)[number],
               )
             }
-            onPress={() => setCustomWater(String(widgets.waterOz))}
+            onPress={() => {
+              setCustomWaterOpen(true);
+              setCustomWater(String(widgets.waterOz));
+            }}
           />
-          {!!customWater && (
+          {customWaterOpen && (
             <View style={styles.customRow}>
               <TextInput
                 accessibilityLabel="Custom water widget amount in ounces"
@@ -264,6 +269,7 @@ export function SettingsScreen({
               key={value}
               theme={theme}
               title={coffeeDefaultLabel(value)}
+              compact
               selected={widgets.coffeeDefault === value}
               onPress={() => saveWidgets({ ...widgets, coffeeDefault: value })}
             />
