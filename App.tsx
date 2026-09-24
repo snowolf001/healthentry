@@ -3,6 +3,7 @@ import {
   ActivityIndicator,
   BackHandler,
   KeyboardAvoidingView,
+  Linking,
   ScrollView,
   StyleSheet,
   StatusBar,
@@ -15,7 +16,7 @@ import { systemHealth } from './src/systemHealth';
 import { validateBloodPressure, weightToKg } from './src/systemHealth/units';
 import { ActionButton } from './src/ui/ActionButton';
 import { useAppTheme } from './src/ui/theme';
-import { SettingsScreen, PrivacyScreen } from './src/settings/SettingsScreen';
+import { SettingsScreen } from './src/settings/SettingsScreen';
 import { TrendsScreen } from './src/trends/TrendsScreen';
 import { runHealthEntry, parsePositiveDecimal } from './src/home/entry';
 import { useWeightInput, weightEntry } from './src/home/weightInput';
@@ -31,7 +32,7 @@ import { caffeineEntry, CaffeineKind } from './src/home/caffeine';
 function App() {
   const theme = useAppTheme();
   const styles = createStyles(theme);
-  const [screen, setScreen] = useState<'home' | 'settings' | 'privacy' | 'trends'>('home');
+  const [screen, setScreen] = useState<'home' | 'settings' | 'trends'>('home');
   const [feedback, setFeedback] = useState('');
   const [busy, setBusy] = useState(false);
   const [otherWater, setOtherWater] = useState(false);
@@ -47,7 +48,7 @@ function App() {
       if (screen === 'home') {
         return false;
       }
-      setScreen(screen === 'privacy' ? 'settings' : 'home');
+      setScreen('home');
       return true;
     });
     return () => listener.remove();
@@ -184,12 +185,10 @@ function App() {
             ready={weight.ready}
             onUnit={weight.selectUnit}
             onBack={() => setScreen('home')}
-            onPrivacy={() => setScreen('privacy')}
+            onPrivacy={() => void Linking.openURL('https://cleanutilityapps.com/healthentry/privacy/')}
             theme={theme}
           />
-        ) : screen === 'privacy' ? (
-          <PrivacyScreen onBack={() => setScreen('settings')} theme={theme} />
-        ) : screen === 'trends' ? (
+         ) : screen === 'trends' ? (
           <TrendsScreen onBack={() => setScreen('home')} theme={theme} weightUnit={weight.unit} />
         ) : (
           <KeyboardAvoidingView style={styles.container} behavior="padding">
@@ -199,7 +198,7 @@ function App() {
             >
               <View style={styles.header}>
                 <Text accessibilityRole="header" style={styles.title}>
-                  HealthEntry
+                  Health Entry
                 </Text>
                 <View style={styles.headerActions}>
                   <ActionButton
