@@ -2,6 +2,7 @@ import type { TurboModule } from 'react-native';
 import { TurboModuleRegistry } from 'react-native';
 export interface Spec extends TurboModule {
   requestWritePermission(recordType: string): Promise<boolean>;
+  requestReadPermissions(recordTypes: string[]): Promise<boolean>;
   isHistoryReadAvailable(): Promise<boolean>;
   requestHistoryReadPermission(): Promise<boolean>;
 }
