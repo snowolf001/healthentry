@@ -25,6 +25,7 @@ class HealthPermissionHost(private val activity: ComponentActivity) : DefaultLif
     private val client by lazy { HealthConnectClient.getOrCreate(activity) }
     private var pendingRead: Promise? = null
     private var expectedRead: Set<String> = emptySet()
+    private var readLaunched = false
     private val readLauncher = activity.registerForActivityResult(
         PermissionController.createRequestPermissionResultContract()
     ) { granted ->
@@ -32,6 +33,7 @@ class HealthPermissionHost(private val activity: ComponentActivity) : DefaultLif
         val expected = expectedRead
         pendingRead = null
         expectedRead = emptySet()
+        readLaunched = false
         result?.resolve(expected.isNotEmpty() && granted.containsAll(expected))
     }
     private val launcher = activity.registerForActivityResult(
@@ -80,12 +82,20 @@ class HealthPermissionHost(private val activity: ComponentActivity) : DefaultLif
         }
         pendingRead = promise
         expectedRead = requested
+        launchReadIfResumed()
+    }
+
+    private fun launchReadIfResumed() {
+        if (readLaunched || pendingRead == null ||
+            !activity.lifecycle.currentState.isAtLeast(Lifecycle.State.RESUMED)) return
+        readLaunched = true
         try {
-            readLauncher.launch(requested)
+            readLauncher.launch(expectedRead)
         } catch (error: Exception) {
+            pendingRead?.reject("permission_cancelled", "Permission request cancelled.", error)
             pendingRead = null
             expectedRead = emptySet()
-            promise.reject("permission_cancelled", "Permission request cancelled.", error)
+            readLaunched = false
         }
     }
 
@@ -129,12 +139,16 @@ class HealthPermissionHost(private val activity: ComponentActivity) : DefaultLif
             launched = false
         }
     }
-    override fun onResume(owner: LifecycleOwner) { launchIfResumed() }
+    override fun onResume(owner: LifecycleOwner) {
+        launchIfResumed()
+        launchReadIfResumed()
+    }
     override fun onDestroy(owner: LifecycleOwner) {
         pending?.reject("permission_cancelled", "Permission request cancelled.")
         pendingRead?.reject("permission_cancelled", "Permission request cancelled.")
         pendingRead = null
         expectedRead = emptySet()
+        readLaunched = false
         pending = null
         permission = null
     }
