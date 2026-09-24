@@ -196,9 +196,9 @@ export function SettingsScreen({
       />
       {debugBuild && (
         <View style={styles.settingsRow}>
-          <View>
+          <View style={styles.debugProText}>
             <Text style={styles.rowTitle}>Debug Pro Access</Text>
-            <Text style={styles.statusText}>Overrides Pro locally in debug builds</Text>
+            <Text style={styles.debugProHint}>Local debug override</Text>
           </View>
           <Switch
             accessibilityLabel="Debug Pro Access"
@@ -513,6 +513,8 @@ const createStyles = (theme: Theme) =>
       borderBottomColor: theme.border,
     },
     segment: { flexDirection: 'row', gap: 6 },
+    debugProText: { flex: 1, minWidth: 0 },
+    debugProHint: { fontSize: 14, color: theme.textSecondary, marginTop: 2 },
     choiceGrid: { flexDirection: 'row', flexWrap: 'wrap', gap: 8 },
     durationRow: { flexDirection: 'row', alignItems: 'center', gap: 8 },
     fieldLabel: { fontSize: 17, color: theme.textPrimary, marginTop: 2 },
