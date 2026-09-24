@@ -14,6 +14,8 @@ object WidgetPreferences {
     private const val COFFEE = "coffee_default"
     private const val MOVE_MINUTES = "move_minutes"
     private const val MOVE_NAME = "move_name"
+    private const val RECENT_WATER = "recent_water_oz"
+    private const val RECENT_MOVE = "recent_move_minutes"
     val coffeeValues = setOf("ask", "coffee8", "coffee12", "coffee16", "espresso1", "espresso2", "espresso3")
 
     fun load(context: Context): WidgetDefaults {
@@ -35,6 +37,25 @@ object WidgetPreferences {
             .putString(WATER, waterOz.toString()).putString(COFFEE, coffeeDefault)
             .putInt(MOVE_MINUTES, moveMinutes.toInt()).putString(MOVE_NAME, cleanMoveName).commit())
         refresh(context)
+    }
+
+    fun recentQuickEntriesJson(context: Context): String {
+        val preferences = context.getSharedPreferences(STORE, Context.MODE_PRIVATE)
+        val water = preferences.getString(RECENT_WATER, "16")?.toDoubleOrNull()?.takeIf { it.isFinite() && it in 1.0..99.0 } ?: 16.0
+        val move = preferences.getInt(RECENT_MOVE, 30).takeIf { it in 1..240 } ?: 30
+        return JSONObject().put("waterOz", water).put("moveMinutes", move).toString()
+    }
+
+    fun saveRecentWaterOz(context: Context, value: Double) {
+        require(value.isFinite() && value in 1.0..99.0)
+        check(context.getSharedPreferences(STORE, Context.MODE_PRIVATE).edit()
+            .putString(RECENT_WATER, value.toString()).commit())
+    }
+
+    fun saveRecentMoveMinutes(context: Context, value: Double) {
+        require(value.isFinite() && value % 1.0 == 0.0 && value in 1.0..240.0)
+        check(context.getSharedPreferences(STORE, Context.MODE_PRIVATE).edit()
+            .putInt(RECENT_MOVE, value.toInt()).commit())
     }
 
     fun json(context: Context): String = load(context).let {
