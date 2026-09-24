@@ -85,7 +85,7 @@ class ProBillingModule(context: ReactApplicationContext) : NativeProBillingSpec(
             billing.queryProductDetailsAsync(query) { result, queryResult ->
                 val detail = queryResult.productDetailsList.firstOrNull()
                 val offer = detail?.subscriptionOfferDetails?.firstOrNull()
-                val activity = currentActivity
+                val activity = getCurrentActivity()
                 if (result.responseCode != BillingClient.BillingResponseCode.OK || detail == null || offer == null || activity == null) {
                     promise.reject("billing_purchase", result.debugMessage.ifBlank { "Subscription is unavailable." }); return@queryProductDetailsAsync
                 }
