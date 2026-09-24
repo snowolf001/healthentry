@@ -15,13 +15,17 @@ import type {
 } from '../systemHealth/types';
 import { ActionButton } from '../ui/ActionButton';
 import type { Theme } from '../ui/theme';
+import { getProState, loadProProducts, purchasePro, restorePro, type ProProduct, type ProState } from '../pro/pro';
 
 type Props = { onBack: () => void; theme: Theme; weightUnit: 'lb' | 'kg' };
-const ranges: TrendRangeDays[] = [7, 30, 90];
+type DisplayRangeDays = 1 | TrendRangeDays;
+const ranges: DisplayRangeDays[] = [1, 7, 30, 90];
 
 export function TrendsScreen({ onBack, theme, weightUnit }: Props) {
   const styles = useMemo(() => createStyles(theme), [theme]);
-  const [days, setDays] = useState<TrendRangeDays>(7);
+  const [days, setDays] = useState<DisplayRangeDays>(1);
+  const [pro, setPro] = useState<ProState>({ isPro: false, widgetTrialStarted: false, widgetTrialDaysRemaining: 14 });
+  const [showPaywall, setShowPaywall] = useState(false);
   const [data, setData] = useState<TrendData | null>(null);
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(true);
@@ -30,7 +34,17 @@ export function TrendsScreen({ onBack, theme, weightUnit }: Props) {
     setLoading(true);
     setError('');
     try {
-      setData(await systemHealth.readTrends(days));
+      const loaded = await systemHealth.readTrends(days === 1 ? 7 : days);
+      if (days === 1) {
+        const today = new Date().toLocaleDateString('en-CA');
+        setData({
+          daily: loaded.daily.filter(row => row.date === today),
+          weights: loaded.weights.filter(row => new Date(row.time).toLocaleDateString('en-CA') === today),
+          bloodPressures: loaded.bloodPressures.filter(row => new Date(row.time).toLocaleDateString('en-CA') === today),
+        });
+      } else {
+        setData(loaded);
+      }
     } catch (reason) {
       setData(null);
       setError(reason instanceof Error ? reason.message : String(reason));
@@ -40,6 +54,7 @@ export function TrendsScreen({ onBack, theme, weightUnit }: Props) {
   }, [days]);
 
   useEffect(() => {
+    void getProState().then(setPro);
     void refresh();
   }, [refresh]);
 
@@ -49,6 +64,10 @@ export function TrendsScreen({ onBack, theme, weightUnit }: Props) {
     });
     return () => subscription.remove();
   }, [refresh]);
+
+  if (showPaywall) {
+    return <ProPaywall theme={theme} pro={pro} onState={state => { setPro(state); if (state.isPro) setShowPaywall(false); }} onBack={() => setShowPaywall(false)} />;
+  }
 
   return (
     <ScrollView contentContainerStyle={styles.content}>
@@ -67,10 +86,10 @@ export function TrendsScreen({ onBack, theme, weightUnit }: Props) {
           <ActionButton
             key={value}
             theme={theme}
-            title={`${value}D`}
+            title={value === 1 ? 'Today' : `${value}D`}
             compact
             selected={days === value}
-            onPress={() => setDays(value)}
+            onPress={() => { if (value === 1 || pro.isPro) setDays(value); else setShowPaywall(true); }}
           />
         ))}
       </View>
@@ -89,7 +108,7 @@ export function TrendsScreen({ onBack, theme, weightUnit }: Props) {
             rows={data.daily}
             value={row => row.waterMl / 29.5735295625}
             theme={theme}
-            days={days}
+            days={days === 1 ? 7 : days}
           />
           <DailyCard
             title="Caffeine"
@@ -97,7 +116,7 @@ export function TrendsScreen({ onBack, theme, weightUnit }: Props) {
             rows={data.daily}
             value={row => row.caffeineMg}
             theme={theme}
-            days={days}
+            days={days === 1 ? 7 : days}
           />
           <DailyCard
             title="Exercise"
@@ -106,25 +125,61 @@ export function TrendsScreen({ onBack, theme, weightUnit }: Props) {
             value={row => row.exerciseMinutes}
             detail={row => `${row.exerciseCount} sessions`}
             theme={theme}
-            days={days}
+            days={days === 1 ? 7 : days}
           />
           <SeriesCard
             title="Weight"
             unit={weightUnit}
             values={dailyWeightAverages(data.weights, weightUnit)}
             theme={theme}
-            days={days}
+            days={days === 1 ? 7 : days}
           />
           <PressureCard
             values={data.bloodPressures}
             theme={theme}
-            days={days}
+            days={days === 1 ? 7 : days}
           />
         </>
       ) : null}
       <Text style={styles.footnote}>
         Trends are read directly from Health Connect. HealthEntry does not keep a second health history.
       </Text>
+    </ScrollView>
+  );
+}
+
+function ProPaywall({ theme, pro, onState, onBack }: { theme: Theme; pro: ProState; onState: (state: ProState) => void; onBack: () => void }) {
+  const styles = useMemo(() => createStyles(theme), [theme]);
+  const [products, setProducts] = useState<ProProduct[]>([]);
+  const [message, setMessage] = useState('');
+  const [busy, setBusy] = useState(false);
+  useEffect(() => { void loadProProducts().then(setProducts).catch(error => setMessage(error instanceof Error ? error.message : String(error))); }, []);
+  async function buy(productId: string) {
+    setBusy(true); setMessage('');
+    try { onState(await purchasePro(productId)); } catch (error) { setMessage(error instanceof Error ? error.message : String(error)); }
+    finally { setBusy(false); }
+  }
+  async function restore() {
+    setBusy(true); setMessage('');
+    try { const state = await restorePro(); onState(state); if (!state.isPro) setMessage('No active HealthEntry Pro subscription was found.'); }
+    catch (error) { setMessage(error instanceof Error ? error.message : String(error)); }
+    finally { setBusy(false); }
+  }
+  return (
+    <ScrollView contentContainerStyle={styles.content}>
+      <View style={styles.header}><ActionButton theme={theme} title="‹" compact onPress={onBack} accessibilityLabel="Back to Trends" /><Text style={styles.title}>HealthEntry Pro</Text></View>
+      <View style={styles.card}>
+        <Text style={styles.cardTitle}>Unlock your health trends</Text>
+        <Text style={styles.secondary}>See 7, 30, and 90-day trends and keep using all four Home Screen widgets after the 14-day widget trial.</Text>
+        {!pro.widgetTrialStarted ? <Text style={styles.secondary}>Your widget trial starts the first time you use a widget.</Text> : !pro.isPro ? <Text style={styles.secondary}>{pro.widgetTrialDaysRemaining} widget trial days remaining.</Text> : null}
+      </View>
+      {products.map(product => (
+        <ActionButton key={product.productId} theme={theme} primary title={product.price ? `${product.productId.endsWith('yearly') ? 'Yearly' : 'Monthly'} · ${product.price}` : product.title} onPress={() => void buy(product.productId)} disabled={busy} />
+      ))}
+      {!products.length && !message ? <Text style={styles.secondary}>Loading plans from Google Play…</Text> : null}
+      {!!message && <Text style={styles.error}>{message}</Text>}
+      <ActionButton theme={theme} title={busy ? 'Please wait…' : 'Restore purchases'} onPress={() => void restore()} disabled={busy} />
+      <Text style={styles.footnote}>Subscriptions renew automatically until cancelled in Google Play.</Text>
     </ScrollView>
   );
 }

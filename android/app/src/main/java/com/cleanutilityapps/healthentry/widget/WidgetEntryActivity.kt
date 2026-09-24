@@ -8,6 +8,7 @@ import com.facebook.react.ReactActivityDelegate
 import com.facebook.react.defaults.DefaultReactActivityDelegate
 import com.cleanutilityapps.healthentry.permissions.HealthPermissionHost
 import com.cleanutilityapps.healthentry.permissions.HealthPermissionOwner
+import com.cleanutilityapps.healthentry.pro.ProAccess
 import java.lang.ref.WeakReference
 
 class WidgetEntryActivity : ReactActivity(), HealthPermissionOwner {
@@ -16,6 +17,15 @@ class WidgetEntryActivity : ReactActivity(), HealthPermissionOwner {
         private set
 
     override fun onCreate(savedInstanceState: Bundle?) {
+        if (!ProAccess.widgetAllowed(this)) {
+            intent.data = null
+            healthPermissions = HealthPermissionHost(this)
+            super.onCreate(savedInstanceState)
+            Toast.makeText(this, "Your 14-day widget trial has ended. Upgrade to HealthEntry Pro in Trends.", Toast.LENGTH_LONG).show()
+            startActivity(Intent(this, com.cleanutilityapps.healthentry.MainActivity::class.java))
+            finishAndRemoveTask()
+            return
+        }
         val action = WidgetPreferences.action(this, intent.data?.host ?: "")
         sessionId = gate.open(action, savedInstanceState != null,
             intent.flags and Intent.FLAG_ACTIVITY_LAUNCHED_FROM_HISTORY != 0) ?: ""

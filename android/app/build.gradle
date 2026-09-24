@@ -115,6 +115,7 @@ dependencies {
     testImplementation("org.robolectric:robolectric:4.16.1")
     // Same Health Connect SDK as react-native-health-connect; Activity-owned permission launchers.
     implementation("androidx.health.connect:connect-client:1.1.0")
+    implementation("com.android.billingclient:billing-ktx:9.1.0")
     // The version of react-native is set by the React Native Gradle Plugin
     implementation("com.facebook.react:react-android")
 
