@@ -74,8 +74,7 @@ class HealthPermissionHost(private val activity: ComponentActivity) : DefaultLif
                 else -> null
             }
         }.toSet()
-        if (requested.size != recordTypes.size || requested.isEmpty() ||
-            !activity.lifecycle.currentState.isAtLeast(Lifecycle.State.RESUMED)) {
+        if (requested.size != recordTypes.size || requested.isEmpty()) {
             promise.reject("permission_unavailable", "Read permission request unavailable.")
             return
         }
