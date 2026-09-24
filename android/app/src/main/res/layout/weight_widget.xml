@@ -1,29 +1,32 @@
 <?xml version="1.0" encoding="utf-8"?>
 <LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
     android:id="@+id/widget_action"
-    android:layout_width="52dp"
-    android:layout_height="64dp"
-    android:layout_gravity="center"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:gravity="center"
     android:minWidth="48dp"
     android:minHeight="48dp"
     android:orientation="vertical"
     android:gravity="center"
     android:paddingHorizontal="4dp"
     android:paddingVertical="1dp"
-    android:background="@drawable/widget_background"
+    android:background="@android:color/transparent"
     android:clickable="true"
     android:focusable="true"
     android:contentDescription="@string/widget_weight_accessibility">
-    <ImageView
-        android:layout_width="34dp"
-        android:layout_height="34dp"
+    <FrameLayout android:layout_width="48dp" android:layout_height="48dp" android:background="@drawable/widget_weight_circle">
+        <ImageView
+        android:layout_width="36dp"
+        android:layout_height="36dp"
+        android:layout_gravity="center"
         android:src="@drawable/widget_weight_icon"
         android:scaleType="fitCenter"
         android:importantForAccessibility="no" />
+    </FrameLayout>
     <TextView
         android:layout_width="match_parent"
-        android:layout_height="16dp"
-        android:layout_marginTop="1dp"
+        android:layout_height="18dp"
+        android:layout_marginTop="4dp"
         android:gravity="center"
         android:text="@string/widget_weight_detail"
         android:textSize="11sp"
