@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useState } from 'react';
 import {
   ActivityIndicator,
+  AppState,
   BackHandler,
   KeyboardAvoidingView,
   Linking,
@@ -40,6 +41,7 @@ function App() {
   const [feedback, setFeedback] = useState('');
   const [feedbackSection, setFeedbackSection] = useState<'water' | 'caffeine' | 'weight' | 'move' | 'bloodPressure' | null>(null);
   const [busy, setBusy] = useState(false);
+  const [healthAvailability, setHealthAvailability] = useState<Awaited<ReturnType<typeof systemHealth.getAvailability>> | null>(null);
   const [showWidgetDiscovery, setShowWidgetDiscovery] = useState(false);
   const [widgetPinSupported, setWidgetPinSupported] = useState(false);
   const [waterValue, setWaterValue] = useState('16');
@@ -52,6 +54,25 @@ function App() {
   const [diastolicValue, setDiastolicValue] = useState('');
   const weight = useWeightInput();
   const guard = runHealthEntry;
+
+  const refreshHealthAvailability = useCallback(async () => {
+    try {
+      setHealthAvailability(await systemHealth.getAvailability());
+    } catch {
+      setHealthAvailability({
+        status: 'unavailable',
+        message: 'Could not check Health Connect. Try again.',
+      });
+    }
+  }, []);
+
+  useEffect(() => {
+    void refreshHealthAvailability();
+    const subscription = AppState.addEventListener('change', state => {
+      if (state === 'active') void refreshHealthAvailability();
+    });
+    return () => subscription.remove();
+  }, [refreshHealthAvailability]);
 
   useEffect(() => {
     void recentQuickEntries.load().then(recent => {
@@ -313,6 +334,35 @@ function App() {
                   />
                 </View>
               </View>
+              {healthAvailability && healthAvailability.status !== 'available' && (
+                <View style={styles.healthConnectCard}>
+                  <Text style={styles.healthConnectTitle}>
+                    {healthAvailability.status === 'update-required'
+                      ? 'Set up Health Connect'
+                      : 'Health Connect unavailable'}
+                  </Text>
+                  <Text style={styles.healthConnectText}>{healthAvailability.message}</Text>
+                  <View style={styles.row}>
+                    {healthAvailability.status === 'update-required' && (
+                      <ActionButton
+                        primary
+                        title="Install / Update"
+                        theme={theme}
+                        onPress={() =>
+                          void Linking.openURL(
+                            'https://play.google.com/store/apps/details?id=com.google.android.apps.healthdata',
+                          )
+                        }
+                      />
+                    )}
+                    <ActionButton
+                      title="Check again"
+                      theme={theme}
+                      onPress={() => void refreshHealthAvailability()}
+                    />
+                  </View>
+                </View>
+              )}
               {showWidgetDiscovery && (
                 <View style={styles.widgetDiscovery}>
                   <View style={styles.widgetDiscoveryHeader}>
@@ -573,6 +623,16 @@ const createStyles = (theme: ReturnType<typeof useAppTheme>) =>
       letterSpacing: -0.8,
       color: theme.textPrimary,
     },
+    healthConnectCard: {
+      borderWidth: 1,
+      borderColor: theme.border,
+      borderRadius: 14,
+      padding: 14,
+      gap: 10,
+      backgroundColor: theme.surface,
+    },
+    healthConnectTitle: { fontSize: 17, fontWeight: '700', color: theme.textPrimary },
+    healthConnectText: { fontSize: 14, lineHeight: 20, color: theme.textSecondary },
     widgetDiscovery: {
       borderWidth: 1,
       borderColor: theme.border,
