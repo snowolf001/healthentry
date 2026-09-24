@@ -15,10 +15,10 @@ import type {
 import { ActionButton } from '../ui/ActionButton';
 import type { Theme } from '../ui/theme';
 
-type Props = { onBack: () => void; theme: Theme };
+type Props = { onBack: () => void; theme: Theme; weightUnit: 'lb' | 'kg' };
 const ranges: TrendRangeDays[] = [7, 30, 90];
 
-export function TrendsScreen({ onBack, theme }: Props) {
+export function TrendsScreen({ onBack, theme, weightUnit }: Props) {
   const styles = useMemo(() => createStyles(theme), [theme]);
   const [days, setDays] = useState<TrendRangeDays>(7);
   const [data, setData] = useState<TrendData | null>(null);
@@ -104,8 +104,8 @@ export function TrendsScreen({ onBack, theme }: Props) {
           />
           <SeriesCard
             title="Weight"
-            unit="kg"
-            values={data.weights.map(row => ({ label: row.time, value: row.kilograms }))}
+            unit={weightUnit}
+            values={dailyWeightAverages(data.weights, weightUnit)}
             theme={theme}
             days={days}
           />
@@ -144,6 +144,7 @@ function DailyCard({
       values={values}
       labels={rows.map(row => axisLabel(row.date, days))}
       theme={theme}
+      showValues={days === 7}
     />
   );
 }
@@ -189,7 +190,7 @@ function PressureCard({
 }
 
 function ChartCard({
-  title, summary, detail, values, secondaryValues, labels, theme,
+  title, summary, detail, values, secondaryValues, labels, theme, showValues = false,
 }: {
   title: string;
   summary: string;
@@ -198,6 +199,7 @@ function ChartCard({
   secondaryValues?: number[];
   labels?: string[];
   theme: Theme;
+  showValues?: boolean;
 }) {
   const styles = useMemo(() => createStyles(theme), [theme]);
   const all = [...values, ...(secondaryValues ?? [])];
@@ -218,6 +220,9 @@ function ChartCard({
         >
           {values.map((value, index) => (
             <View key={index} style={styles.barSlot}>
+              {showValues && value > 0 && (
+                <Text style={styles.barValue}>{format(value)}</Text>
+              )}
               <View
                 style={[
                   styles.bar,
@@ -252,6 +257,25 @@ function ChartCard({
   );
 }
 
+function dailyWeightAverages(
+  values: { time: string; kilograms: number }[],
+  unit: 'lb' | 'kg',
+) {
+  const groups = new Map<string, { total: number; count: number }>();
+  for (const item of values) {
+    const date = new Date(item.time);
+    const key = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}-${String(date.getDate()).padStart(2, '0')}`;
+    const group = groups.get(key) ?? { total: 0, count: 0 };
+    group.total += item.kilograms;
+    group.count += 1;
+    groups.set(key, group);
+  }
+  return [...groups.entries()].sort(([a], [b]) => a.localeCompare(b)).map(([label, group]) => {
+    const kilograms = group.total / group.count;
+    return { label, value: unit === 'lb' ? kilograms / 0.45359237 : kilograms };
+  });
+}
+
 function axisLabel(value: string, days: TrendRangeDays) {
   const date = new Date(value.length === 10 ? `${value}T12:00:00` : value);
   const today = new Date();
@@ -277,7 +301,8 @@ const createStyles = (theme: Theme) => StyleSheet.create({
   summary: { fontSize: 18, fontWeight: '600', color: theme.textPrimary, textAlign: 'right' },
   detail: { fontSize: 13, color: theme.textSecondary, textAlign: 'right' },
   chart: { height: 112, flexDirection: 'row', alignItems: 'flex-end', gap: 2, overflow: 'hidden' },
-  barSlot: { flex: 1, height: '100%', flexDirection: 'row', alignItems: 'flex-end', justifyContent: 'center', gap: 1 },
+  barSlot: { flex: 1, height: '100%', flexDirection: 'row', alignItems: 'flex-end', justifyContent: 'center', gap: 1, position: 'relative', paddingTop: 18 },
+  barValue: { position: 'absolute', top: 0, alignSelf: 'center', color: theme.textSecondary, fontSize: 10, textAlign: 'center' },
   bar: { flex: 1, minWidth: 1, borderRadius: 2, backgroundColor: theme.accent },
   secondaryBar: { flex: 1, minWidth: 1, borderRadius: 2, backgroundColor: theme.textSecondary },
   axis: { flexDirection: 'row', minHeight: 18, gap: 2 },
