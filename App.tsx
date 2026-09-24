@@ -190,7 +190,7 @@ function App() {
         ) : screen === 'privacy' ? (
           <PrivacyScreen onBack={() => setScreen('settings')} theme={theme} />
         ) : screen === 'trends' ? (
-          <TrendsScreen onBack={() => setScreen('home')} theme={theme} />
+          <TrendsScreen onBack={() => setScreen('home')} theme={theme} weightUnit={weight.unit} />
         ) : (
           <KeyboardAvoidingView style={styles.container} behavior="padding">
             <ScrollView
