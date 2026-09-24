@@ -220,27 +220,30 @@ function App() {
                   />
                 </View>
               </View>
-              <View style={styles.status}>
-                {busy && (
-                  <ActivityIndicator
-                    color={theme.accent}
-                    accessibilityLabel="Writing entry"
-                  />
-                )}
-                <Text
-                  accessibilityLiveRegion="polite"
-                  selectable
-                  style={[
-                    styles.feedback,
-                    !!feedback &&
-                      !busy &&
-                      !feedback.startsWith('✓') &&
-                      styles.error,
-                  ]}
-                >
-                  {feedback || 'Quick entries. Your system health data.'}
-                </Text>
-              </View>
+              {(busy || feedback) && (
+                <View style={styles.status}>
+                  {busy && (
+                    <ActivityIndicator
+                      color={theme.accent}
+                      accessibilityLabel="Writing entry"
+                    />
+                  )}
+                  {!!feedback && (
+                    <Text
+                      accessibilityLiveRegion="polite"
+                      selectable
+                      style={[
+                        styles.feedback,
+                        !busy &&
+                          !feedback.startsWith('✓') &&
+                          styles.error,
+                      ]}
+                    >
+                      {feedback}
+                    </Text>
+                  )}
+                </View>
+              )}
               <View style={styles.section}>
                 <Text accessibilityRole="header" style={styles.label}>
                   WATER
