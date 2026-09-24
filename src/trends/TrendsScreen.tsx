@@ -1,6 +1,7 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useState } from 'react';
 import {
   ActivityIndicator,
+  AppState,
   ScrollView,
   StyleSheet,
   Text,
@@ -25,24 +26,29 @@ export function TrendsScreen({ onBack, theme, weightUnit }: Props) {
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(true);
 
-  useEffect(() => {
-    let active = true;
+  const refresh = useCallback(async () => {
     setLoading(true);
     setError('');
-    systemHealth
-      .readTrends(days)
-      .then(value => active && setData(value))
-      .catch(reason => {
-        if (active) {
-          setData(null);
-          setError(reason instanceof Error ? reason.message : String(reason));
-        }
-      })
-      .finally(() => active && setLoading(false));
-    return () => {
-      active = false;
-    };
+    try {
+      setData(await systemHealth.readTrends(days));
+    } catch (reason) {
+      setData(null);
+      setError(reason instanceof Error ? reason.message : String(reason));
+    } finally {
+      setLoading(false);
+    }
   }, [days]);
+
+  useEffect(() => {
+    void refresh();
+  }, [refresh]);
+
+  useEffect(() => {
+    const subscription = AppState.addEventListener('change', state => {
+      if (state === 'active') void refresh();
+    });
+    return () => subscription.remove();
+  }, [refresh]);
 
   return (
     <ScrollView contentContainerStyle={styles.content}>
