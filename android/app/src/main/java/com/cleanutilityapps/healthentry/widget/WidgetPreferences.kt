@@ -16,6 +16,7 @@ object WidgetPreferences {
     private const val MOVE_NAME = "move_name"
     private const val RECENT_WATER = "recent_water_oz"
     private const val RECENT_MOVE = "recent_move_minutes"
+    private const val DISCOVERY_DISMISSED = "widget_discovery_dismissed"
     val coffeeValues = setOf("ask", "coffee8", "coffee12", "coffee16", "espresso1", "espresso2", "espresso3")
 
     fun load(context: Context): WidgetDefaults {
@@ -56,6 +57,12 @@ object WidgetPreferences {
         require(value.isFinite() && value % 1.0 == 0.0 && value in 1.0..240.0)
         check(context.getSharedPreferences(STORE, Context.MODE_PRIVATE).edit()
             .putInt(RECENT_MOVE, value.toInt()).commit())
+    }
+
+    fun isDiscoveryDismissed(context: Context) = context.getSharedPreferences(STORE, Context.MODE_PRIVATE).getBoolean(DISCOVERY_DISMISSED, false)
+
+    fun dismissDiscovery(context: Context) {
+        check(context.getSharedPreferences(STORE, Context.MODE_PRIVATE).edit().putBoolean(DISCOVERY_DISMISSED, true).commit())
     }
 
     fun json(context: Context): String = load(context).let {
