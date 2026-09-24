@@ -10,12 +10,17 @@ export type ProProduct = { productId: string; title: string; price: string; offe
 
 const fallback: ProState = { isPro: false, widgetTrialStarted: false, widgetTrialDaysRemaining: 14 };
 
+export async function isDebugBuild(): Promise<boolean> {
+  if (!NativeProBilling) return false;
+  try { return await NativeProBilling.isDebugBuild(); } catch { return false; }
+}
+
 export async function getProState(): Promise<ProState> {
   if (!NativeProBilling) return fallback;
   try { return JSON.parse(await NativeProBilling.getState()) as ProState; } catch { return fallback; }
 }
 export async function setDebugProOverride(active: boolean): Promise<ProState> {
-  if (!NativeProBilling || !__DEV__) return getProState();
+  if (!NativeProBilling || !(await isDebugBuild())) return getProState();
   return JSON.parse(await NativeProBilling.setDebugProOverride(active)) as ProState;
 }
 export async function loadProProducts(): Promise<ProProduct[]> {
