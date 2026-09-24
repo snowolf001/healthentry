@@ -205,14 +205,12 @@ async function addExercise(input: ExerciseInput) {
   }));
 }
 
-function numericValue(value: unknown): number {
-  if (
-    value &&
-    typeof value === 'object' &&
-    'value' in value &&
-    typeof (value as { value?: unknown }).value === 'number'
-  ) {
-    return (value as { value: number }).value;
+function numericValue(value: unknown, resultKey?: string): number {
+  if (!value || typeof value !== 'object') return 0;
+  const result = value as Record<string, unknown>;
+  if (typeof result.value === 'number') return result.value;
+  if (resultKey && typeof result[resultKey] === 'number') {
+    return result[resultKey] as number;
   }
   return 0;
 }
@@ -310,11 +308,11 @@ async function readTrends(days: TrendRangeDays): Promise<TrendData> {
 
   hydration.forEach(record => {
     const day = byDate.get(localDateKey(String(record.endTime)));
-    if (day) day.waterMl += numericValue(record.volume);
+    if (day) day.waterMl += numericValue(record.volume, 'inMilliliters');
   });
   nutrition.forEach(record => {
     const day = byDate.get(localDateKey(String(record.endTime)));
-    if (day) day.caffeineMg += numericValue(record.caffeine);
+    if (day) day.caffeineMg += numericValue(record.caffeine, 'inMilligrams');
   });
   exercises.forEach(record => {
     const startTime = new Date(String(record.startTime));
@@ -334,15 +332,15 @@ async function readTrends(days: TrendRangeDays): Promise<TrendData> {
     weights: weights
       .map(record => ({
         time: String(record.time),
-        kilograms: numericValue(record.weight),
+        kilograms: numericValue(record.weight, 'inKilograms'),
       }))
       .filter(record => record.kilograms > 0)
       .sort((a, b) => a.time.localeCompare(b.time)),
     bloodPressures: pressures
       .map(record => ({
         time: String(record.time),
-        systolic: numericValue(record.systolic),
-        diastolic: numericValue(record.diastolic),
+        systolic: numericValue(record.systolic, 'inMillimetersOfMercury'),
+        diastolic: numericValue(record.diastolic, 'inMillimetersOfMercury'),
       }))
       .filter(record => record.systolic > 0 && record.diastolic > 0)
       .sort((a, b) => a.time.localeCompare(b.time)),
