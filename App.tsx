@@ -23,6 +23,8 @@ import { useWeightInput, weightEntry } from './src/home/weightInput';
 import { logPreferenceFailure } from './src/preferences/weightPreferences';
 import {
   defaultWidgetPreferences,
+  recentQuickEntries,
+  validateMoveMinutes,
   widgetPreferences,
 } from './src/preferences/widgetPreferences';
 
@@ -34,14 +36,28 @@ function App() {
   const styles = createStyles(theme);
   const [screen, setScreen] = useState<'home' | 'settings' | 'trends'>('home');
   const [feedback, setFeedback] = useState('');
+  const [feedbackSection, setFeedbackSection] = useState<'water' | 'caffeine' | 'weight' | 'move' | 'bloodPressure' | null>(null);
   const [busy, setBusy] = useState(false);
-  const [otherWater, setOtherWater] = useState(false);
-  const [waterValue, setWaterValue] = useState('');
+  const [waterValue, setWaterValue] = useState('16');
+  const [recentWaterOz, setRecentWaterOz] = useState(16);
+  const [moveValue, setMoveValue] = useState('30');
+  const [recentMoveMinutes, setRecentMoveMinutes] = useState(30);
+  const [moveName, setMoveName] = useState('Exercise');
   const [caffeineKind, setCaffeineKind] = useState<CaffeineKind | null>(null);
   const [systolicValue, setSystolicValue] = useState('');
   const [diastolicValue, setDiastolicValue] = useState('');
   const weight = useWeightInput();
   const guard = runHealthEntry;
+
+  useEffect(() => {
+    void recentQuickEntries.load().then(recent => {
+      setRecentWaterOz(recent.waterOz);
+      setWaterValue(String(recent.waterOz));
+      setRecentMoveMinutes(recent.moveMinutes);
+      setMoveValue(String(recent.moveMinutes));
+    });
+    void widgetPreferences.load().then(preferences => setMoveName(preferences.moveName)).catch(() => {});
+  }, []);
 
   useEffect(() => {
     const listener = BackHandler.addEventListener('hardwareBackPress', () => {
@@ -57,10 +73,12 @@ function App() {
     async (
       write: () => Promise<unknown>,
       success: string,
+      section: 'water' | 'caffeine' | 'weight' | 'move' | 'bloodPressure',
       afterSuccess?: () => void,
     ) => {
       await guard(async () => {
         setBusy(true);
+        setFeedbackSection(section);
         setFeedback('Adding…');
         try {
           try {
@@ -93,6 +111,7 @@ function App() {
       return runEntry(
         () => systemHealth.addWater({ value: ounces, unit: 'us-fl-oz' }),
         `✓ Added ${ounces} oz water`,
+        'water',
       );
     },
     [runEntry],
@@ -100,15 +119,18 @@ function App() {
   function addOtherWater() {
     const value = parsePositiveDecimal(waterValue);
     if (value === null) {
+      setFeedbackSection('water');
       setFeedback('Enter a water amount greater than zero.');
       return;
     }
     return runEntry(
       () => systemHealth.addWater({ value, unit: 'us-fl-oz' }),
       `✓ Added ${value} oz water`,
+      'water',
       () => {
-        setOtherWater(false);
-        setWaterValue('');
+        setRecentWaterOz(value);
+        setWaterValue(String(value));
+        void recentQuickEntries.saveWaterOz(value).catch(logPreferenceFailure);
       },
     );
   }
@@ -116,6 +138,7 @@ function App() {
     return runEntry(
       () => systemHealth.addCaffeine(entry.input),
       `✓ ${entry.success}`,
+      'caffeine',
       () => setCaffeineKind(null),
     );
   }
@@ -129,32 +152,57 @@ function App() {
       return runEntry(
         () => systemHealth.addWeight(input),
         `✓ Added ${weight.draft.text.replace(',', '.').trim()} ${weight.unit}`,
+        'weight',
         () => weight.rememberSuccess(kg),
       );
     } catch (error) {
+      setFeedbackSection('weight');
       setFeedback((error as Error).message);
     }
   }
-  async function addMove() {
-    let { moveMinutes: minutes, moveName: title } = defaultWidgetPreferences;
+  async function addMove(minutes: number) {
+    let title = moveName || defaultWidgetPreferences.moveName;
     try {
       const preferences = await widgetPreferences.load();
-      minutes = preferences.moveMinutes;
       title = preferences.moveName;
+      setMoveName(title);
     } catch {
-      // Preference failure must not block a health entry; use the documented default.
+      // Preference failure must not block a health entry; use the last loaded/default name.
     }
     return runEntry(
       () => systemHealth.addExercise({ minutes, title }),
       `✓ Added ${title} · ${minutes} min`,
+      'move',
+    );
+  }
+  function addOtherMove() {
+    let minutes: number;
+    try {
+      minutes = validateMoveMinutes(moveValue);
+    } catch (error) {
+      setFeedbackSection('move');
+      setFeedback((error as Error).message);
+      return;
+    }
+    return runEntry(
+      () => systemHealth.addExercise({ minutes, title: moveName || defaultWidgetPreferences.moveName }),
+      `✓ Added ${moveName || defaultWidgetPreferences.moveName} · ${minutes} min`,
+      'move',
+      () => {
+        setRecentMoveMinutes(minutes);
+        setMoveValue(String(minutes));
+        void recentQuickEntries.saveMoveMinutes(minutes).catch(logPreferenceFailure);
+      },
     );
   }
   function addBloodPressure() {
     if (!systolicValue.trim()) {
+      setFeedbackSection('bloodPressure');
       setFeedback('Enter systolic pressure.');
       return;
     }
     if (!diastolicValue.trim()) {
+      setFeedbackSection('bloodPressure');
       setFeedback('Enter diastolic pressure.');
       return;
     }
@@ -163,12 +211,14 @@ function App() {
     try {
       validateBloodPressure({ systolic, diastolic });
     } catch (error) {
+      setFeedbackSection('bloodPressure');
       setFeedback((error as Error).message);
       return;
     }
     return runEntry(
       () => systemHealth.addBloodPressure({ systolic, diastolic }),
       `✓ Added ${systolic}/${diastolic} mmHg`,
+      'bloodPressure',
       () => {
         setSystolicValue('');
         setDiastolicValue('');
@@ -219,76 +269,45 @@ function App() {
                   />
                 </View>
               </View>
-              {(busy || feedback) && (
-                <View style={styles.status}>
-                  {busy && (
-                    <ActivityIndicator
-                      color={theme.accent}
-                      accessibilityLabel="Writing entry"
-                    />
-                  )}
-                  {!!feedback && (
-                    <Text
-                      accessibilityLiveRegion="polite"
-                      selectable
-                      style={[
-                        styles.feedback,
-                        !busy &&
-                          !feedback.startsWith('✓') &&
-                          styles.error,
-                      ]}
-                    >
-                      {feedback}
-                    </Text>
-                  )}
-                </View>
-              )}
               <View style={styles.section}>
                 <Text accessibilityRole="header" style={styles.label}>
                   WATER
                 </Text>
                 <View style={styles.row}>
                   <ActionButton
-                    title="+8 oz"
+                    title="8 oz"
                     theme={theme}
                     onPress={() => addWater(8)}
                     disabled={busy}
                   />
                   <ActionButton
-                    title="+12 oz"
+                    title="12 oz"
                     theme={theme}
                     onPress={() => addWater(12)}
                     disabled={busy}
                   />
                   <ActionButton
-                    title="Other"
+                    title={`${recentWaterOz} oz`}
                     theme={theme}
-                    testID="other-water"
-                    onPress={() => setOtherWater(!otherWater)}
+                    onPress={() => addWater(recentWaterOz)}
                     disabled={busy}
                   />
                 </View>
-                {otherWater && (
-                  <View style={styles.customRow}>
-                    <TextInput
-                      accessibilityLabel="Water amount in US fluid ounces"
-                      placeholder="Amount"
-                      placeholderTextColor={theme.textSecondary}
-                      keyboardType="decimal-pad"
-                      value={waterValue}
-                      onChangeText={setWaterValue}
-                      style={[styles.input, busy && styles.disabledControl]}
-                      editable={!busy}
-                    />
-                    <Text style={styles.unitSuffix}>oz</Text>
-                    <ActionButton
-                      title="Add"
-                      theme={theme}
-                      onPress={addOtherWater}
-                      disabled={busy}
-                    />
-                  </View>
-                )}
+                <View style={styles.customRow}>
+                  <TextInput
+                    accessibilityLabel="Water amount in US fluid ounces"
+                    placeholder="Amount"
+                    placeholderTextColor={theme.textSecondary}
+                    keyboardType="decimal-pad"
+                    value={waterValue}
+                    onChangeText={setWaterValue}
+                    style={[styles.input, busy && styles.disabledControl]}
+                    editable={!busy}
+                  />
+                  <Text style={styles.unitSuffix}>oz</Text>
+                  <ActionButton compact primary title="Add" theme={theme} onPress={addOtherWater} disabled={busy} />
+                </View>
+                {feedbackSection === 'water' && <EntryFeedback busy={busy} feedback={feedback} theme={theme} styles={styles} />}
               </View>
               <View style={styles.section}>
                 <Text accessibilityRole="header" style={styles.label}>
@@ -319,6 +338,7 @@ function App() {
                     onClose={() => setCaffeineKind(null)}
                   />
                 )}
+                {feedbackSection === 'caffeine' && <EntryFeedback busy={busy} feedback={feedback} theme={theme} styles={styles} />}
               </View>
               <View style={styles.section}>
                 <Text accessibilityRole="header" style={styles.label}>
@@ -362,24 +382,32 @@ function App() {
                 {!weight.ready && (
                   <Text style={styles.hint}>Loading input preference…</Text>
                 )}
+                {feedbackSection === 'weight' && <EntryFeedback busy={busy} feedback={feedback} theme={theme} styles={styles} />}
               </View>
               <View style={styles.section}>
                 <Text accessibilityRole="header" style={styles.label}>
                   MOVE
                 </Text>
                 <View style={styles.row}>
-                  <ActionButton
-                    title="+ Exercise"
-                    theme={theme}
-                    primary
-                    accessibilityLabel="Add exercise"
-                    onPress={addMove}
-                    disabled={busy}
-                  />
-                  <Text style={styles.hint}>
-                    Uses the duration set in Settings (default 5 min).
-                  </Text>
+                  <ActionButton title="5 min" theme={theme} onPress={() => addMove(5)} disabled={busy} />
+                  <ActionButton title="10 min" theme={theme} onPress={() => addMove(10)} disabled={busy} />
+                  <ActionButton title={`${recentMoveMinutes} min`} theme={theme} onPress={() => addMove(recentMoveMinutes)} disabled={busy} />
                 </View>
+                <View style={styles.customRow}>
+                  <TextInput
+                    accessibilityLabel="Exercise duration in minutes"
+                    placeholder="Minutes"
+                    placeholderTextColor={theme.textSecondary}
+                    keyboardType="number-pad"
+                    value={moveValue}
+                    onChangeText={text => setMoveValue(text.replace(/[^0-9]/g, ''))}
+                    style={[styles.input, busy && styles.disabledControl]}
+                    editable={!busy}
+                  />
+                  <Text style={styles.unitSuffix}>min</Text>
+                  <ActionButton compact primary title="Add" theme={theme} onPress={addOtherMove} disabled={busy} />
+                </View>
+                {feedbackSection === 'move' && <EntryFeedback busy={busy} feedback={feedback} theme={theme} styles={styles} />}
               </View>
               <View style={styles.section}>
                 <Text accessibilityRole="header" style={styles.label}>
@@ -428,12 +456,35 @@ function App() {
                   />
                 </View>
                 <Text style={styles.hint}>mmHg</Text>
+                {feedbackSection === 'bloodPressure' && <EntryFeedback busy={busy} feedback={feedback} theme={theme} styles={styles} />}
               </View>
             </ScrollView>
           </KeyboardAvoidingView>
         )}
       </SafeAreaView>
     </SafeAreaProvider>
+  );
+}
+
+function EntryFeedback({ busy, feedback, theme, styles }: {
+  busy: boolean;
+  feedback: string;
+  theme: ReturnType<typeof useAppTheme>;
+  styles: ReturnType<typeof createStyles>;
+}) {
+  return (
+    <View style={styles.status}>
+      {busy && <ActivityIndicator color={theme.accent} accessibilityLabel="Writing entry" />}
+      {!!feedback && (
+        <Text
+          accessibilityLiveRegion="polite"
+          selectable
+          style={[styles.feedback, !busy && !feedback.startsWith('✓') && styles.error]}
+        >
+          {feedback}
+        </Text>
+      )}
+    </View>
   );
 }
 
