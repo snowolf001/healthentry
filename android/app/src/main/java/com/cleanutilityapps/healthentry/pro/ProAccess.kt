@@ -8,7 +8,7 @@ object ProAccess {
     private const val ACTIVE = "active"
     private const val WIDGET_TRIAL_STARTED = "widget_trial_started_ms"
     private const val DEBUG_OVERRIDE = "debug_pro_override"
-    private const val TRIAL_MS = 14L * 24 * 60 * 60 * 1000
+    private const val TRIAL_MS = 1L * 24 * 60 * 60 * 1000 // TEMP: 1 day for Free vs Pro testing
 
     fun isPro(context: Context): Boolean =
         debugOverride(context) || context.getSharedPreferences(STORE, Context.MODE_PRIVATE).getBoolean(ACTIVE, false)
