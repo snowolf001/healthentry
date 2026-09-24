@@ -3,6 +3,7 @@ package com.cleanutilityapps.healthentry.widget
 import android.appwidget.AppWidgetManager
 import android.content.ComponentName
 import android.content.Context
+import android.net.Uri
 import org.json.JSONObject
 
 data class WidgetDefaults(val waterOz: Double = 8.0, val coffeeDefault: String = "ask", val moveMinutes: Int = 5, val moveName: String = "Exercise")
@@ -47,6 +48,7 @@ object WidgetPreferences {
             "water" -> "water:${format(value.waterOz)}"
             "coffee" -> "coffee:${value.coffeeDefault}"
             "weight" -> "weight"
+            "exercise" -> "exercise:${value.moveMinutes}:${Uri.encode(value.moveName)}"
             else -> null
         }
     }
