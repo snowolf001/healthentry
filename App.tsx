@@ -31,6 +31,7 @@ import {
 
 import { CaffeinePicker } from './src/home/CaffeinePicker';
 import { caffeineEntry, CaffeineKind } from './src/home/caffeine';
+import NativeWidgetActions from './specs/NativeWidgetActions';
 
 function App() {
   const theme = useAppTheme();
@@ -39,6 +40,8 @@ function App() {
   const [feedback, setFeedback] = useState('');
   const [feedbackSection, setFeedbackSection] = useState<'water' | 'caffeine' | 'weight' | 'move' | 'bloodPressure' | null>(null);
   const [busy, setBusy] = useState(false);
+  const [showWidgetDiscovery, setShowWidgetDiscovery] = useState(false);
+  const [widgetPinSupported, setWidgetPinSupported] = useState(false);
   const [waterValue, setWaterValue] = useState('16');
   const [recentWaterOz, setRecentWaterOz] = useState(16);
   const [moveValue, setMoveValue] = useState('30');
@@ -58,6 +61,11 @@ function App() {
       setMoveValue(String(recent.moveMinutes));
     });
     void widgetPreferences.load().then(preferences => setMoveName(preferences.moveName)).catch(() => {});
+    void NativeWidgetActions?.loadWidgetDiscovery().then(raw => {
+      const state = JSON.parse(raw) as { dismissed: boolean; hasWidget: boolean; pinSupported: boolean };
+      setShowWidgetDiscovery(!state.dismissed && !state.hasWidget);
+      setWidgetPinSupported(state.pinSupported);
+    }).catch(() => {});
   }, []);
 
   useEffect(() => {
@@ -210,6 +218,25 @@ function App() {
       },
     );
   }
+  async function dismissWidgetDiscovery() {
+    setShowWidgetDiscovery(false);
+    try { await NativeWidgetActions?.dismissWidgetDiscovery(); } catch {}
+  }
+  async function addHomeWidget(widget: 'water' | 'coffee' | 'weight' | 'exercise') {
+    if (!widgetPinSupported) {
+      void Linking.openURL('https://cleanutilityapps.com/healthentry/widgets/');
+      return;
+    }
+    try {
+      const requested = await NativeWidgetActions?.requestPinWidget(widget);
+      if (!requested) {
+        void Linking.openURL('https://cleanutilityapps.com/healthentry/widgets/');
+      }
+    } catch {
+      void Linking.openURL('https://cleanutilityapps.com/healthentry/widgets/');
+    }
+  }
+
   function addBloodPressure() {
     if (!systolicValue.trim()) {
       setFeedbackSection('bloodPressure');
@@ -284,6 +311,29 @@ function App() {
                   />
                 </View>
               </View>
+              {showWidgetDiscovery && (
+                <View style={styles.widgetDiscovery}>
+                  <View style={styles.widgetDiscoveryHeader}>
+                    <View style={styles.widgetDiscoveryCopy}>
+                      <Text style={styles.widgetDiscoveryTitle}>Log faster with Home Screen widgets</Text>
+                      <Text style={styles.widgetDiscoveryText}>Add Water, Coffee, Weight, or Exercise for quick access.</Text>
+                    </View>
+                    <Text accessibilityRole="button" accessibilityLabel="Dismiss widget tip" onPress={dismissWidgetDiscovery} style={styles.dismissWidget}>×</Text>
+                  </View>
+                  <View style={styles.widgetDiscoveryActions}>
+                    {(['water', 'coffee', 'weight', 'exercise'] as const).map(widget => (
+                      <ActionButton
+                        key={widget}
+                        compact
+                        title={widget === 'exercise' ? 'Exercise' : widget[0].toUpperCase() + widget.slice(1)}
+                        theme={theme}
+                        onPress={() => void addHomeWidget(widget)}
+                      />
+                    ))}
+                  </View>
+                  <Text accessibilityRole="link" onPress={() => void Linking.openURL('https://cleanutilityapps.com/healthentry/widgets/')} style={styles.howToLink}>How to add widgets ›</Text>
+                </View>
+              )}
               <View style={styles.section}>
                 <Text accessibilityRole="header" style={styles.label}>
                   WATER
@@ -385,7 +435,6 @@ function App() {
                     onPress={weight.switchUnit}
                     disabled={busy || !weight.ready}
                   />
-                  <Text style={styles.inlinePressureUnit}>mmHg</Text>
                   <ActionButton
                     compact
                     primary
@@ -461,6 +510,7 @@ function App() {
                     ]}
                     editable={!busy}
                   />
+                  <Text style={styles.inlinePressureUnit}>mmHg</Text>
                   <ActionButton
                     compact
                     primary
@@ -521,6 +571,21 @@ const createStyles = (theme: ReturnType<typeof useAppTheme>) =>
       letterSpacing: -0.8,
       color: theme.textPrimary,
     },
+    widgetDiscovery: {
+      borderWidth: 1,
+      borderColor: theme.border,
+      borderRadius: 14,
+      padding: 14,
+      gap: 12,
+      backgroundColor: theme.surface,
+    },
+    widgetDiscoveryHeader: { flexDirection: 'row', alignItems: 'flex-start', gap: 10 },
+    widgetDiscoveryCopy: { flex: 1, gap: 4 },
+    widgetDiscoveryTitle: { fontSize: 16, fontWeight: '700', color: theme.text },
+    widgetDiscoveryText: { fontSize: 13, lineHeight: 18, color: theme.textSecondary },
+    widgetDiscoveryActions: { flexDirection: 'row', flexWrap: 'wrap', gap: 8 },
+    dismissWidget: { fontSize: 24, lineHeight: 24, color: theme.textSecondary, paddingHorizontal: 4 },
+    howToLink: { fontSize: 14, fontWeight: '600', color: theme.accent },
     section: {
       gap: 9,
       paddingBottom: 14,
