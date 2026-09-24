@@ -168,7 +168,7 @@ export default function WidgetEntry({ sessionId }: { sessionId: string }) {
         style={[styles.dialog, action === 'coffee' && styles.coffeeDialog]}
         accessibilityViewIsModal
       >
-        <Text style={styles.brand}>HealthEntry</Text>
+        <Text style={styles.brand}>Health Entry</Text>
         {action === 'coffee' ? (
           <ScrollView
             keyboardShouldPersistTaps="handled"
