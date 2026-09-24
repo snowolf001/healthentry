@@ -33,6 +33,10 @@
         android:autoSizeMaxTextSize="11sp"
         android:autoSizeStepGranularity="1sp"
         android:textColor="@color/widget_text_secondary"
+        android:shadowColor="#99000000"
+        android:shadowDx="0"
+        android:shadowDy="1"
+        android:shadowRadius="2"
         android:includeFontPadding="false"
         android:maxLines="1"
         android:importantForAccessibility="no" />
