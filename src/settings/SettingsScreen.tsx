@@ -1,6 +1,8 @@
 import { useEffect, useMemo, useState } from 'react';
 import {
   AppState,
+  KeyboardAvoidingView,
+  Platform,
   Pressable,
   ScrollView,
   StyleSheet,
@@ -153,7 +155,15 @@ export function SettingsScreen({
     }
   }
   return (
-    <ScrollView contentContainerStyle={styles.content}>
+    <KeyboardAvoidingView
+      style={styles.screen}
+      behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+    >
+    <ScrollView
+      contentContainerStyle={styles.content}
+      keyboardShouldPersistTaps="handled"
+      automaticallyAdjustKeyboardInsets
+    >
       <View style={styles.header}>
         <ActionButton
           theme={theme}
@@ -356,6 +366,7 @@ export function SettingsScreen({
       <SettingsLink theme={theme} label="Privacy Policy" onPress={onPrivacy} />
       <Text style={styles.version}>Version {packageInfo.version}</Text>
     </ScrollView>
+    </KeyboardAvoidingView>
   );
 }
 
@@ -439,6 +450,7 @@ export function PrivacyScreen({
 
 const createStyles = (theme: Theme) =>
   StyleSheet.create({
+    screen: { flex: 1, backgroundColor: theme.background },
     content: {
       padding: 20,
       paddingBottom: 32,
