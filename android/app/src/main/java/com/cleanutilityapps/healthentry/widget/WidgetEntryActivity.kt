@@ -18,6 +18,9 @@ class WidgetEntryActivity : ReactActivity(), HealthPermissionOwner {
 
     override fun onCreate(savedInstanceState: Bundle?) {
         if (!ProAccess.widgetAllowed(this)) {
+            intent.data = null
+            healthPermissions = HealthPermissionHost(this)
+            super.onCreate(savedInstanceState)
             Toast.makeText(this, "Your 14-day widget trial has ended. Upgrade to HealthEntry Pro in Trends.", Toast.LENGTH_LONG).show()
             startActivity(Intent(this, com.cleanutilityapps.healthentry.MainActivity::class.java))
             finishAndRemoveTask()
