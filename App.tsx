@@ -385,6 +385,7 @@ function App() {
                     onPress={weight.switchUnit}
                     disabled={busy || !weight.ready}
                   />
+                  <Text style={styles.inlinePressureUnit}>mmHg</Text>
                   <ActionButton
                     compact
                     primary
@@ -470,7 +471,6 @@ function App() {
                     disabled={busy}
                   />
                 </View>
-                <Text style={styles.hint}>mmHg</Text>
                 {feedbackSection === 'bloodPressure' && <EntryFeedback busy={busy} feedback={feedback} theme={theme} styles={styles} />}
               </View>
             </ScrollView>
@@ -546,8 +546,10 @@ const createStyles = (theme: ReturnType<typeof useAppTheme>) =>
       gap: 8,
     },
     pressureInput: {
-      flex: 1,
-      minWidth: 0,
+      width: 92,
+      flexGrow: 0,
+      flexShrink: 1,
+      minWidth: 72,
       minHeight: 56,
       borderWidth: 1,
       borderColor: theme.border,
@@ -559,6 +561,7 @@ const createStyles = (theme: ReturnType<typeof useAppTheme>) =>
       fontSize: 18,
     },
     pressureSeparator: { fontSize: 22, color: theme.textSecondary },
+    inlinePressureUnit: { fontSize: 14, color: theme.textSecondary, flexShrink: 1 },
     unitSuffix: { fontSize: 17, color: theme.textSecondary },
     disabledControl: { opacity: 0.55, borderColor: theme.disabled },
     hint: { fontSize: 14, color: theme.textSecondary },
