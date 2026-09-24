@@ -9,10 +9,10 @@
     <string name="widget_coffee_detail">Coffee</string>
     <string name="widget_weight_detail">Weight</string>
     <string name="widget_exercise_detail">5 min</string>
-    <string name="widget_water_accessibility">Add 8 ounces of water with HealthEntry; permission may be requested</string>
-    <string name="widget_coffee_accessibility">Choose coffee size or espresso shots with HealthEntry; permission may be requested</string>
-    <string name="widget_weight_accessibility">Enter weight with HealthEntry; tap Add to save</string>
-    <string name="widget_exercise_accessibility">Add the configured exercise session with HealthEntry; permission may be requested</string>
+    <string name="widget_water_accessibility">Quickly log water</string>
+    <string name="widget_coffee_accessibility">Quickly log coffee</string>
+    <string name="widget_weight_accessibility">Quickly log weight</string>
+    <string name="widget_exercise_accessibility">Quickly log exercise</string>
     <string name="widget_water_name">Water</string>
     <string name="widget_coffee_name">Coffee</string>
     <string name="widget_weight_name">Weight</string>
