@@ -14,7 +14,7 @@ import { systemHealth } from '../systemHealth';
 import type { Availability, WeightUnit } from '../systemHealth/types';
 import { ActionButton } from '../ui/ActionButton';
 import type { Theme } from '../ui/theme';
-import { getProState, setDebugProOverride, type ProState } from '../pro/pro';
+import { getProState, isDebugBuild, setDebugProOverride, type ProState } from '../pro/pro';
 import {
   coffeeDefaultLabel,
   coffeeDefaults,
@@ -51,6 +51,7 @@ export function SettingsScreen({
   const [error, setError] = useState('');
   const [opening, setOpening] = useState(false);
   const [pro, setPro] = useState<ProState | null>(null);
+  const [debugBuild, setDebugBuild] = useState(false);
   const [widgets, setWidgets] = useState<WidgetPreferences>(
     defaultWidgetPreferences,
   );
@@ -66,6 +67,7 @@ export function SettingsScreen({
   const scrollRef = useRef<ScrollView>(null);
   useEffect(() => {
     void getProState().then(setPro);
+    void isDebugBuild().then(setDebugBuild);
     const subscription = AppState.addEventListener('change', state => {
       if (state === 'active') void getProState().then(setPro);
     });
@@ -191,7 +193,7 @@ export function SettingsScreen({
         accessibilityLabel="Health Entry Pro"
         onPress={onPro}
       />
-      {__DEV__ && (
+      {debugBuild && (
         <View style={styles.settingsRow}>
           <View>
             <Text style={styles.rowTitle}>Debug Pro Access</Text>
