@@ -1,15 +1,24 @@
 package com.cleanutilityapps.healthentry.pro
 
 import android.content.Context
+import com.cleanutilityapps.healthentry.BuildConfig
 
 object ProAccess {
     private const val STORE = "pro_access"
     private const val ACTIVE = "active"
     private const val WIDGET_TRIAL_STARTED = "widget_trial_started_ms"
+    private const val DEBUG_OVERRIDE = "debug_pro_override"
     private const val TRIAL_MS = 14L * 24 * 60 * 60 * 1000
 
     fun isPro(context: Context): Boolean =
-        context.getSharedPreferences(STORE, Context.MODE_PRIVATE).getBoolean(ACTIVE, false)
+        debugOverride(context) || context.getSharedPreferences(STORE, Context.MODE_PRIVATE).getBoolean(ACTIVE, false)
+
+    fun debugOverride(context: Context): Boolean =
+        BuildConfig.DEBUG && context.getSharedPreferences(STORE, Context.MODE_PRIVATE).getBoolean(DEBUG_OVERRIDE, false)
+
+    fun setDebugOverride(context: Context, active: Boolean) {
+        if (BuildConfig.DEBUG) context.getSharedPreferences(STORE, Context.MODE_PRIVATE).edit().putBoolean(DEBUG_OVERRIDE, active).apply()
+    }
 
     fun setPro(context: Context, active: Boolean) {
         context.getSharedPreferences(STORE, Context.MODE_PRIVATE).edit().putBoolean(ACTIVE, active).apply()
@@ -32,6 +41,7 @@ object ProAccess {
         val remaining = if (started == 0L) TRIAL_MS else (TRIAL_MS - (nowMs - started)).coerceAtLeast(0L)
         return org.json.JSONObject()
             .put("isPro", isPro(context))
+            .put("debugProOverride", debugOverride(context))
             .put("widgetTrialStarted", started > 0L)
             .put("widgetTrialDaysRemaining", kotlin.math.ceil(remaining / 86400000.0).toInt())
             .toString()
