@@ -171,6 +171,8 @@ function SeriesCard({
       values={values.map(item => item.value)}
       labels={values.map(item => axisLabel(item.label, days))}
       theme={theme}
+      showValues={days === 7}
+      scaledBars
     />
   );
 }
@@ -196,7 +198,7 @@ function PressureCard({
 }
 
 function ChartCard({
-  title, summary, detail, values, secondaryValues, labels, theme, showValues = false,
+  title, summary, detail, values, secondaryValues, labels, theme, showValues = false, scaledBars = false,
 }: {
   title: string;
   summary: string;
@@ -206,10 +208,21 @@ function ChartCard({
   labels?: string[];
   theme: Theme;
   showValues?: boolean;
+  scaledBars?: boolean;
 }) {
   const styles = useMemo(() => createStyles(theme), [theme]);
   const all = [...values, ...(secondaryValues ?? [])];
   const max = Math.max(1, ...all);
+  const positiveValues = values.filter(value => value > 0);
+  const scaledMin = positiveValues.length ? Math.min(...positiveValues) : 0;
+  const scaledMax = positiveValues.length ? Math.max(...positiveValues) : 0;
+  const scaledSpan = scaledMax - scaledMin;
+  const barHeight = (value: number) => {
+    if (value <= 0) return 0;
+    if (!scaledBars) return Math.max(4, (value / max) * 100);
+    if (scaledSpan === 0) return 70;
+    return 28 + ((value - scaledMin) / scaledSpan) * 62;
+  };
   return (
     <View style={styles.card}>
       <View style={styles.cardHeader}>
@@ -232,7 +245,7 @@ function ChartCard({
               <View
                 style={[
                   styles.bar,
-                  { height: `${Math.max(value > 0 ? 4 : 0, (value / max) * 100)}%` },
+                  { height: `${barHeight(value)}%` },
                 ]}
               />
               {secondaryValues && (
