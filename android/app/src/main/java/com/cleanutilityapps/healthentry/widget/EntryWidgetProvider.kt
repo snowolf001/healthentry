@@ -33,3 +33,4 @@ abstract class EntryWidgetProvider(private val layout: Int, private val action: 
 class WaterWidgetProvider : EntryWidgetProvider(R.layout.water_widget, "water")
 class CoffeeWidgetProvider : EntryWidgetProvider(R.layout.coffee_widget, "coffee")
 class WeightWidgetProvider : EntryWidgetProvider(R.layout.weight_widget, "weight")
+class ExerciseWidgetProvider : EntryWidgetProvider(R.layout.exercise_widget, "exercise")
