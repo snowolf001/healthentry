@@ -611,10 +611,9 @@ const createStyles = (theme: ReturnType<typeof useAppTheme>) =>
       gap: 8,
     },
     pressureInput: {
-      width: 92,
+      width: 76,
       flexGrow: 0,
-      flexShrink: 1,
-      minWidth: 72,
+      flexShrink: 0,
       minHeight: 56,
       borderWidth: 1,
       borderColor: theme.border,
