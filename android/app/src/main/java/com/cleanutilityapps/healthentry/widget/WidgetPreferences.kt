@@ -63,11 +63,12 @@ object WidgetPreferences {
 
     fun refresh(context: Context) {
         val manager = AppWidgetManager.getInstance(context)
-        listOf(WaterWidgetProvider::class.java, CoffeeWidgetProvider::class.java).forEach { provider ->
+        listOf(WaterWidgetProvider::class.java, CoffeeWidgetProvider::class.java, ExerciseWidgetProvider::class.java).forEach { provider ->
             val ids = manager.getAppWidgetIds(ComponentName(context, provider))
             when (provider) {
                 WaterWidgetProvider::class.java -> WaterWidgetProvider().onUpdate(context, manager, ids)
                 CoffeeWidgetProvider::class.java -> CoffeeWidgetProvider().onUpdate(context, manager, ids)
+                ExerciseWidgetProvider::class.java -> ExerciseWidgetProvider().onUpdate(context, manager, ids)
             }
         }
     }
