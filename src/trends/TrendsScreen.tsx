@@ -21,11 +21,11 @@ type Props = { onBack: () => void; theme: Theme; weightUnit: 'lb' | 'kg' };
 type DisplayRangeDays = 1 | TrendRangeDays;
 const ranges: DisplayRangeDays[] = [1, 7, 30, 90];
 
-export function TrendsScreen({ onBack, theme, weightUnit }: Props) {
+export function TrendsScreen({ onBack, theme, weightUnit, startInPaywall = false }: Props & { startInPaywall?: boolean }) {
   const styles = useMemo(() => createStyles(theme), [theme]);
   const [days, setDays] = useState<DisplayRangeDays>(1);
   const [pro, setPro] = useState<ProState>({ isPro: false, widgetTrialStarted: false, widgetTrialDaysRemaining: 14 });
-  const [showPaywall, setShowPaywall] = useState(false);
+  const [showPaywall, setShowPaywall] = useState(startInPaywall);
   const [data, setData] = useState<TrendData | null>(null);
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(true);
@@ -152,8 +152,18 @@ function ProPaywall({ theme, pro, onState, onBack }: { theme: Theme; pro: ProSta
   const styles = useMemo(() => createStyles(theme), [theme]);
   const [products, setProducts] = useState<ProProduct[]>([]);
   const [message, setMessage] = useState('');
+  const [loadingPlans, setLoadingPlans] = useState(true);
   const [busy, setBusy] = useState(false);
-  useEffect(() => { void loadProProducts().then(setProducts).catch(error => setMessage(error instanceof Error ? error.message : String(error))); }, []);
+  const loadPlans = useCallback(async () => {
+    setLoadingPlans(true); setMessage('');
+    try {
+      const loaded = await loadProProducts();
+      setProducts(loaded);
+      if (!loaded.length) setMessage('Plans are unavailable. Install HealthEntry from a Google Play test or production track, then try again.');
+    } catch (error) { setMessage(error instanceof Error ? error.message : String(error)); }
+    finally { setLoadingPlans(false); }
+  }, []);
+  useEffect(() => { void loadPlans(); }, [loadPlans]);
   async function buy(productId: string) {
     setBusy(true); setMessage('');
     try { onState(await purchasePro(productId)); } catch (error) { setMessage(error instanceof Error ? error.message : String(error)); }
@@ -167,18 +177,31 @@ function ProPaywall({ theme, pro, onState, onBack }: { theme: Theme; pro: ProSta
   }
   return (
     <ScrollView contentContainerStyle={styles.content}>
-      <View style={styles.header}><ActionButton theme={theme} title="‹" compact onPress={onBack} accessibilityLabel="Back to Trends" /><Text style={styles.title}>HealthEntry Pro</Text></View>
-      <View style={styles.card}>
-        <Text style={styles.cardTitle}>Unlock your health trends</Text>
-        <Text style={styles.secondary}>See 7, 30, and 90-day trends and keep using all four Home Screen widgets after the 14-day widget trial.</Text>
-        {!pro.widgetTrialStarted ? <Text style={styles.secondary}>Your widget trial starts the first time you use a widget.</Text> : !pro.isPro ? <Text style={styles.secondary}>{pro.widgetTrialDaysRemaining} widget trial days remaining.</Text> : null}
+      <View style={styles.header}><ActionButton theme={theme} title="‹" compact onPress={onBack} accessibilityLabel="Back from HealthEntry Pro" /><Text style={styles.title}>HealthEntry Pro</Text></View>
+      <Text style={styles.proHeadline}>See more. Log faster.</Text>
+      <View style={styles.proBenefits}>
+        <Text style={styles.proBenefit}>✓ 7, 30 & 90-day health trends</Text>
+        <Text style={styles.proBenefit}>✓ Keep all 4 Home Screen widgets</Text>
       </View>
-      {products.map(product => (
-        <ActionButton key={product.productId} theme={theme} primary title={product.price ? `${product.productId.endsWith('yearly') ? 'Yearly' : 'Monthly'} · ${product.price}` : product.title} onPress={() => void buy(product.productId)} disabled={busy} />
-      ))}
-      {!products.length && !message ? <Text style={styles.secondary}>Loading plans from Google Play…</Text> : null}
+      <Text style={styles.secondary}>
+        {!pro.widgetTrialStarted ? 'Widgets are free for 14 days starting with your first widget use.' : !pro.isPro ? `${pro.widgetTrialDaysRemaining} days left in your widget trial.` : 'HealthEntry Pro is active.'}
+      </Text>
+      {products.map(product => {
+        const yearly = product.productId.endsWith('yearly');
+        return (
+          <View key={product.productId} style={styles.planCard}>
+            <View style={styles.planCopy}>
+              <Text style={styles.planTitle}>{yearly ? 'Yearly' : 'Monthly'}</Text>
+              <Text style={styles.planPrice}>{product.price || product.title}</Text>
+            </View>
+            <ActionButton theme={theme} primary title="Choose" onPress={() => void buy(product.productId)} disabled={busy} />
+          </View>
+        );
+      })}
+      {loadingPlans && <View style={styles.planLoading}><ActivityIndicator color={theme.accent} /><Text style={styles.secondary}>Loading plans from Google Play…</Text></View>}
       {!!message && <Text style={styles.error}>{message}</Text>}
-      <ActionButton theme={theme} title={busy ? 'Please wait…' : 'Restore purchases'} onPress={() => void restore()} disabled={busy} />
+      {!loadingPlans && !products.length && <ActionButton theme={theme} compact title="Try again" onPress={() => void loadPlans()} disabled={busy} />}
+      <Text accessibilityRole="button" style={styles.restoreLink} onPress={() => !busy && void restore()}>{busy ? 'Please wait…' : 'Restore purchases'}</Text>
       <Text style={styles.footnote}>Subscriptions renew automatically until cancelled in Google Play.</Text>
     </ScrollView>
   );
@@ -381,7 +404,16 @@ const createStyles = (theme: Theme) => StyleSheet.create({
   secondaryBar: { flex: 1, minWidth: 1, borderRadius: 2, backgroundColor: theme.textSecondary },
   axis: { flexDirection: 'row', minHeight: 18, gap: 2 },
   axisLabel: { flex: 1, color: theme.textSecondary, fontSize: 9, textAlign: 'center' },
-  secondary: { color: theme.textSecondary, fontSize: 14 },
+  secondary: { color: theme.textSecondary, fontSize: 14, lineHeight: 20 },
+  proHeadline: { fontSize: 24, fontWeight: '700', color: theme.textPrimary, marginTop: 4 },
+  proBenefits: { gap: 8, paddingVertical: 4 },
+  proBenefit: { fontSize: 17, lineHeight: 24, color: theme.textPrimary, fontWeight: '600' },
+  planCard: { minHeight: 76, borderWidth: 1, borderColor: theme.border, borderRadius: 14, padding: 14, backgroundColor: theme.inputBackground, flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: 12 },
+  planCopy: { flex: 1, gap: 3 },
+  planTitle: { fontSize: 18, fontWeight: '700', color: theme.textPrimary },
+  planPrice: { fontSize: 15, color: theme.textSecondary },
+  planLoading: { flexDirection: 'row', alignItems: 'center', gap: 10, minHeight: 44 },
+  restoreLink: { color: theme.accent, fontSize: 15, fontWeight: '600', textAlign: 'center', paddingVertical: 10 },
   error: { color: theme.error, fontSize: 15, lineHeight: 21 },
   footnote: { color: theme.textSecondary, fontSize: 13, lineHeight: 18 },
 });
