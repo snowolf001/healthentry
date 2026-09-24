@@ -23,6 +23,19 @@ class HealthPermissionHost(private val activity: ComponentActivity) : DefaultLif
     private var permission: String? = null
     private var launched = false
     private val client by lazy { HealthConnectClient.getOrCreate(activity) }
+    private var pendingRead: Promise? = null
+    private var expectedRead: Set<String> = emptySet()
+    private var readLaunched = false
+    private val readLauncher = activity.registerForActivityResult(
+        PermissionController.createRequestPermissionResultContract()
+    ) { granted ->
+        val result = pendingRead
+        val expected = expectedRead
+        pendingRead = null
+        expectedRead = emptySet()
+        readLaunched = false
+        result?.resolve(expected.isNotEmpty() && granted.containsAll(expected))
+    }
     private val launcher = activity.registerForActivityResult(
         PermissionController.createRequestPermissionResultContract()
     ) { granted ->
@@ -46,6 +59,44 @@ class HealthPermissionHost(private val activity: ComponentActivity) : DefaultLif
             return
         }
         requestPermission(HealthPermission.PERMISSION_READ_HEALTH_DATA_HISTORY, promise)
+    }
+
+    fun requestRead(recordTypes: List<String>, promise: Promise) {
+        if (pendingRead != null) {
+            promise.reject("permission_busy", "A permission request is already open.")
+            return
+        }
+        val requested = recordTypes.mapNotNull { recordType ->
+            when (recordType) {
+                "Hydration" -> HealthPermission.getReadPermission(HydrationRecord::class)
+                "Nutrition" -> HealthPermission.getReadPermission(NutritionRecord::class)
+                "Weight" -> HealthPermission.getReadPermission(WeightRecord::class)
+                "BloodPressure" -> HealthPermission.getReadPermission(BloodPressureRecord::class)
+                "ExerciseSession" -> HealthPermission.getReadPermission(ExerciseSessionRecord::class)
+                else -> null
+            }
+        }.toSet()
+        if (requested.size != recordTypes.size || requested.isEmpty()) {
+            promise.reject("permission_unavailable", "Read permission request unavailable.")
+            return
+        }
+        pendingRead = promise
+        expectedRead = requested
+        launchReadIfResumed()
+    }
+
+    private fun launchReadIfResumed() {
+        if (readLaunched || pendingRead == null ||
+            !activity.lifecycle.currentState.isAtLeast(Lifecycle.State.RESUMED)) return
+        readLaunched = true
+        try {
+            readLauncher.launch(expectedRead)
+        } catch (error: Exception) {
+            pendingRead?.reject("permission_cancelled", "Permission request cancelled.", error)
+            pendingRead = null
+            expectedRead = emptySet()
+            readLaunched = false
+        }
     }
 
     fun request(recordType: String, promise: Promise) {
@@ -88,9 +139,16 @@ class HealthPermissionHost(private val activity: ComponentActivity) : DefaultLif
             launched = false
         }
     }
-    override fun onResume(owner: LifecycleOwner) { launchIfResumed() }
+    override fun onResume(owner: LifecycleOwner) {
+        launchIfResumed()
+        launchReadIfResumed()
+    }
     override fun onDestroy(owner: LifecycleOwner) {
         pending?.reject("permission_cancelled", "Permission request cancelled.")
+        pendingRead?.reject("permission_cancelled", "Permission request cancelled.")
+        pendingRead = null
+        expectedRead = emptySet()
+        readLaunched = false
         pending = null
         permission = null
     }

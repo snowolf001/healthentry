@@ -21,8 +21,8 @@ class WidgetEntryActivity : ReactActivity(), HealthPermissionOwner {
             intent.flags and Intent.FLAG_ACTIVITY_LAUNCHED_FROM_HISTORY != 0) ?: ""
         // Clear even rejected/restored launches before React or task restoration can inspect them.
         intent.data = null
-        super.onCreate(savedInstanceState)
         healthPermissions = HealthPermissionHost(this)
+        super.onCreate(savedInstanceState)
         if (sessionId.isEmpty()) {
             Toast.makeText(this, "Entry unavailable. Tap the widget again when ready.", Toast.LENGTH_SHORT).show()
             finishAndRemoveTask()
