@@ -287,14 +287,13 @@ async function readTrends(days: TrendRangeDays): Promise<TrendData> {
     (await readRecords(recordType as never, { timeRangeFilter } as never))
       .records as unknown as Record<string, unknown>[];
 
-  const [hydration, nutrition, weights, pressures, exercises] =
-    await Promise.all([
-      read('Hydration'),
-      read('Nutrition'),
-      read('Weight'),
-      read('BloodPressure'),
-      read('ExerciseSession'),
-    ]);
+  // Read sequentially. Some Health Connect providers/devices are less stable when
+  // several binder reads are started at exactly the same time after permission UI.
+  const hydration = await read('Hydration');
+  const nutrition = await read('Nutrition');
+  const weights = await read('Weight');
+  const pressures = await read('BloodPressure');
+  const exercises = await read('ExerciseSession');
 
   const daily = Array.from({ length: days }, (_, index) => {
     const date = new Date(start);
