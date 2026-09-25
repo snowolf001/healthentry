@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import {
   AppState,
+  Linking,
   Pressable,
   Switch,
   ScrollView,
@@ -230,6 +231,12 @@ export function SettingsScreen({
         </View>
       </View>
       <Text style={styles.sectionLabel}>WIDGETS</Text>
+      <SettingsLink
+        theme={theme}
+        label="How to add & use widgets"
+        accessibilityLabel="How to add and use Home Screen widgets"
+        onPress={() => void Linking.openURL('https://cleanutilityapps.com/healthentry/widgets/')}
+      />
       <SettingsLink
         theme={theme}
         label={`Water Widget · ${widgets.waterOz} oz`}
