@@ -21,7 +21,7 @@ class WidgetEntryActivity : ReactActivity(), HealthPermissionOwner {
             intent.data = null
             healthPermissions = HealthPermissionHost(this)
             super.onCreate(savedInstanceState)
-            Toast.makeText(this, "Your 14-day widget trial has ended. Upgrade to HealthEntry Pro in Trends.", Toast.LENGTH_LONG).show()
+            Toast.makeText(this, "Widget trial ended. Upgrade to Pro for continued access.", Toast.LENGTH_LONG).show()
             startActivity(Intent(this, com.cleanutilityapps.healthentry.MainActivity::class.java))
             finishAndRemoveTask()
             return
