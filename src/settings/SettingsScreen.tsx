@@ -324,7 +324,7 @@ export function SettingsScreen({
           ))}
         </View>
       )}
-      <Text style={styles.sectionLabel}>MOVE</Text>
+      <Text style={styles.sectionLabel}>EXERCISE</Text>
       <Text style={styles.fieldLabel}>Default duration</Text>
         <View style={styles.durationRow}>
           <TextInput
