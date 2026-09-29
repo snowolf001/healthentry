@@ -3,7 +3,6 @@ import {
   AppState,
   Linking,
   Pressable,
-  Switch,
   ScrollView,
   StyleSheet,
   Text,
@@ -15,7 +14,6 @@ import { systemHealth } from '../systemHealth';
 import type { Availability, WeightUnit } from '../systemHealth/types';
 import { ActionButton } from '../ui/ActionButton';
 import type { Theme } from '../ui/theme';
-import { getProState, isDebugBuild, setDebugProOverride, type ProState } from '../pro/pro';
 import {
   coffeeDefaultLabel,
   coffeeDefaults,
@@ -34,7 +32,6 @@ type Props = {
   onUnit: (unit: WeightUnit) => void;
   onBack: () => void;
   onPrivacy: () => void;
-  onPro: () => void;
   theme: Theme;
 };
 
@@ -45,15 +42,12 @@ export function SettingsScreen({
   onUnit,
   onBack,
   onPrivacy,
-  onPro,
   theme,
 }: Props) {
   const styles = useMemo(() => createStyles(theme), [theme]);
   const [availability, setAvailability] = useState<Availability | null>(null);
   const [error, setError] = useState('');
   const [opening, setOpening] = useState(false);
-  const [pro, setPro] = useState<ProState | null>(null);
-  const [debugBuild, setDebugBuild] = useState(false);
   const [widgets, setWidgets] = useState<WidgetPreferences>(
     defaultWidgetPreferences,
   );
@@ -67,14 +61,6 @@ export function SettingsScreen({
   const [moveName, setMoveName] = useState('Exercise');
   const [widgetError, setWidgetError] = useState('');
   const scrollRef = useRef<ScrollView>(null);
-  useEffect(() => {
-    void getProState().then(setPro);
-    void isDebugBuild().then(setDebugBuild);
-    const subscription = AppState.addEventListener('change', state => {
-      if (state === 'active') void getProState().then(setPro);
-    });
-    return () => subscription.remove();
-  }, []);
   useEffect(() => {
     let active = true;
     let revision = 0;
@@ -188,28 +174,6 @@ export function SettingsScreen({
           Settings
         </Text>
       </View>
-      <Text style={styles.sectionLabel}>PRO</Text>
-      <SettingsLink
-        theme={theme}
-        label={pro?.isPro ? 'Health Entry Pro · Active' : 'Health Entry Pro'}
-        accessibilityLabel="Health Entry Pro"
-        onPress={onPro}
-      />
-      {debugBuild && (
-        <View style={styles.settingsRow}>
-          <View style={styles.debugProText}>
-            <Text style={styles.rowTitle}>Debug Pro Access</Text>
-            <Text style={styles.debugProHint}>Local debug override</Text>
-          </View>
-          <Switch
-            accessibilityLabel="Debug Pro Access"
-            value={pro?.debugProOverride === true}
-            onValueChange={active => {
-              void setDebugProOverride(active).then(setPro);
-            }}
-          />
-        </View>
-      )}
       <Text style={styles.sectionLabel}>UNITS</Text>
       <View style={styles.settingsRow}>
         <Text style={styles.rowTitle}>Weight</Text>
@@ -520,8 +484,6 @@ const createStyles = (theme: Theme) =>
       borderBottomColor: theme.border,
     },
     segment: { flexDirection: 'row', gap: 6 },
-    debugProText: { flex: 1, minWidth: 0 },
-    debugProHint: { fontSize: 14, color: theme.textSecondary, marginTop: 2 },
     choiceGrid: { flexDirection: 'row', flexWrap: 'wrap', gap: 8 },
     durationRow: { flexDirection: 'row', alignItems: 'center', gap: 8 },
     fieldLabel: { fontSize: 17, color: theme.textPrimary, marginTop: 2 },
