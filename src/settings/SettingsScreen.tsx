@@ -35,7 +35,6 @@ type Props = {
   theme: Theme;
 };
 
-// Debug Pro UI is intentionally gated by the native Android debug build flag.
 export function SettingsScreen({
   unit,
   ready,
