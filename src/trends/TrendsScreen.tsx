@@ -15,17 +15,14 @@ import type {
 } from '../systemHealth/types';
 import { ActionButton } from '../ui/ActionButton';
 import type { Theme } from '../ui/theme';
-import { getProState, loadProProducts, purchasePro, restorePro, type ProProduct, type ProState } from '../pro/pro';
 
 type Props = { onBack: () => void; theme: Theme; weightUnit: 'lb' | 'kg' };
 type DisplayRangeDays = 1 | TrendRangeDays;
 const ranges: DisplayRangeDays[] = [1, 7, 30, 90];
 
-export function TrendsScreen({ onBack, theme, weightUnit, startInPaywall = false }: Props & { startInPaywall?: boolean }) {
+export function TrendsScreen({ onBack, theme, weightUnit }: Props) {
   const styles = useMemo(() => createStyles(theme), [theme]);
   const [days, setDays] = useState<DisplayRangeDays>(1);
-  const [pro, setPro] = useState<ProState>({ isPro: false, widgetTrialStarted: false, widgetTrialDaysRemaining: 14 });
-  const [showPaywall, setShowPaywall] = useState(startInPaywall);
   const [data, setData] = useState<TrendData | null>(null);
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(true);
@@ -54,7 +51,6 @@ export function TrendsScreen({ onBack, theme, weightUnit, startInPaywall = false
   }, [days]);
 
   useEffect(() => {
-    void getProState().then(setPro);
     void refresh();
   }, [refresh]);
 
@@ -64,10 +60,6 @@ export function TrendsScreen({ onBack, theme, weightUnit, startInPaywall = false
     });
     return () => subscription.remove();
   }, [refresh]);
-
-  if (showPaywall) {
-    return <ProPaywall theme={theme} pro={pro} onState={state => { setPro(state); if (state.isPro) setShowPaywall(false); }} onBack={() => setShowPaywall(false)} />;
-  }
 
   return (
     <ScrollView contentContainerStyle={styles.content}>
@@ -89,7 +81,7 @@ export function TrendsScreen({ onBack, theme, weightUnit, startInPaywall = false
             title={value === 1 ? 'Today' : `${value}D`}
             compact
             selected={days === value}
-            onPress={() => { if (value === 1 || pro.isPro) setDays(value); else setShowPaywall(true); }}
+            onPress={() => setDays(value)}
           />
         ))}
       </View>
@@ -144,65 +136,6 @@ export function TrendsScreen({ onBack, theme, weightUnit, startInPaywall = false
       <Text style={styles.footnote}>
         Trends are read directly from Health Connect. Health Entry does not keep a second health history.
       </Text>
-    </ScrollView>
-  );
-}
-
-function ProPaywall({ theme, pro, onState, onBack }: { theme: Theme; pro: ProState; onState: (state: ProState) => void; onBack: () => void }) {
-  const styles = useMemo(() => createStyles(theme), [theme]);
-  const [products, setProducts] = useState<ProProduct[]>([]);
-  const [message, setMessage] = useState('');
-  const [loadingPlans, setLoadingPlans] = useState(true);
-  const [busy, setBusy] = useState(false);
-  const loadPlans = useCallback(async () => {
-    setLoadingPlans(true); setMessage('');
-    try {
-      const loaded = await loadProProducts();
-      setProducts(loaded);
-      if (!loaded.length) setMessage('Plans are unavailable. Install Health Entry from a Google Play test or production track, then try again.');
-    } catch (error) { setMessage(error instanceof Error ? error.message : String(error)); }
-    finally { setLoadingPlans(false); }
-  }, []);
-  useEffect(() => { void loadPlans(); }, [loadPlans]);
-  async function buy(productId: string) {
-    setBusy(true); setMessage('');
-    try { onState(await purchasePro(productId)); } catch (error) { setMessage(error instanceof Error ? error.message : String(error)); }
-    finally { setBusy(false); }
-  }
-  async function restore() {
-    setBusy(true); setMessage('');
-    try { const state = await restorePro(); onState(state); if (!state.isPro) setMessage('No active Health Entry Pro subscription was found.'); }
-    catch (error) { setMessage(error instanceof Error ? error.message : String(error)); }
-    finally { setBusy(false); }
-  }
-  return (
-    <ScrollView contentContainerStyle={styles.content}>
-      <View style={styles.header}><ActionButton theme={theme} title="‹" compact onPress={onBack} accessibilityLabel="Back from Health Entry Pro" /><Text style={styles.title}>Health Entry Pro</Text></View>
-      <Text style={styles.proHeadline}>See more. Log faster.</Text>
-      <View style={styles.proBenefits}>
-        <Text style={styles.proBenefit}>✓ 7, 30 & 90-day health trends</Text>
-        <Text style={styles.proBenefit}>✓ Keep all 4 Home Screen widgets</Text>
-      </View>
-      <Text style={styles.secondary}>
-        {!pro.widgetTrialStarted ? 'Widgets are free for 14 days starting with your first widget use.' : !pro.isPro ? `${pro.widgetTrialDaysRemaining} days left in your widget trial.` : 'Health Entry Pro is active.'}
-      </Text>
-      {products.map(product => {
-        const yearly = product.productId.endsWith('yearly');
-        return (
-          <View key={product.productId} style={styles.planCard}>
-            <View style={styles.planCopy}>
-              <Text style={styles.planTitle}>{yearly ? 'Yearly' : 'Monthly'}</Text>
-              <Text style={styles.planPrice}>{product.price || product.title}</Text>
-            </View>
-            <ActionButton theme={theme} primary title="Choose" onPress={() => void buy(product.productId)} disabled={busy} />
-          </View>
-        );
-      })}
-      {loadingPlans && <View style={styles.planLoading}><ActivityIndicator color={theme.accent} /><Text style={styles.secondary}>Loading plans from Google Play…</Text></View>}
-      {!!message && <Text style={styles.error}>{message}</Text>}
-      {!loadingPlans && !products.length && <ActionButton theme={theme} compact title="Try again" onPress={() => void loadPlans()} disabled={busy} />}
-      <Text accessibilityRole="button" style={styles.restoreLink} onPress={() => !busy && void restore()}>{busy ? 'Please wait…' : 'Restore purchases'}</Text>
-      <Text style={styles.footnote}>Subscriptions renew automatically until cancelled in Google Play.</Text>
     </ScrollView>
   );
 }
@@ -405,15 +338,6 @@ const createStyles = (theme: Theme) => StyleSheet.create({
   axis: { flexDirection: 'row', minHeight: 18, gap: 2 },
   axisLabel: { flex: 1, color: theme.textSecondary, fontSize: 9, textAlign: 'center' },
   secondary: { color: theme.textSecondary, fontSize: 14, lineHeight: 20 },
-  proHeadline: { fontSize: 24, fontWeight: '700', color: theme.textPrimary, marginTop: 4 },
-  proBenefits: { gap: 8, paddingVertical: 4 },
-  proBenefit: { fontSize: 17, lineHeight: 24, color: theme.textPrimary, fontWeight: '600' },
-  planCard: { minHeight: 76, borderWidth: 1, borderColor: theme.border, borderRadius: 14, padding: 14, backgroundColor: theme.inputBackground, flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: 12 },
-  planCopy: { flex: 1, gap: 3 },
-  planTitle: { fontSize: 18, fontWeight: '700', color: theme.textPrimary },
-  planPrice: { fontSize: 15, color: theme.textSecondary },
-  planLoading: { flexDirection: 'row', alignItems: 'center', gap: 10, minHeight: 44 },
-  restoreLink: { color: theme.accent, fontSize: 15, fontWeight: '600', textAlign: 'center', paddingVertical: 10 },
   error: { color: theme.error, fontSize: 15, lineHeight: 21 },
   footnote: { color: theme.textSecondary, fontSize: 13, lineHeight: 18 },
 });
