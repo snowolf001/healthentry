@@ -38,7 +38,6 @@ function App() {
   const theme = useAppTheme();
   const styles = createStyles(theme);
   const [screen, setScreen] = useState<'home' | 'settings' | 'trends'>('home');
-  const [openProFromSettings, setOpenProFromSettings] = useState(false);
   const [feedback, setFeedback] = useState('');
   const [feedbackSection, setFeedbackSection] = useState<'water' | 'caffeine' | 'weight' | 'move' | 'bloodPressure' | null>(null);
   const [busy, setBusy] = useState(false);
@@ -302,15 +301,13 @@ function App() {
             onUnit={weight.selectUnit}
             onBack={() => setScreen('home')}
             onPrivacy={() => void Linking.openURL('https://cleanutilityapps.com/healthentry/privacy/')}
-            onPro={() => { setOpenProFromSettings(true); setScreen('trends'); }}
             theme={theme}
           />
          ) : screen === 'trends' ? (
           <TrendsScreen
-            onBack={() => { setOpenProFromSettings(false); setScreen(openProFromSettings ? 'settings' : 'home'); }}
+            onBack={() => setScreen('home')}
             theme={theme}
             weightUnit={weight.unit}
-            startInPaywall={openProFromSettings}
           />
         ) : (
           <KeyboardAvoidingView style={styles.container} behavior="padding">
@@ -328,7 +325,6 @@ function App() {
                     theme={theme}
                     compact
                     onPress={() => {
-                      setOpenProFromSettings(false);
                       setScreen('trends');
                     }}
                     disabled={busy}
